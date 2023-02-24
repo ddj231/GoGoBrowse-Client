@@ -1,0 +1,41 @@
+html, body {
+    margin: 0;
+    height: 100%;
+}
+
+#navBar {
+    width: 100%;
+    height: 100px;
+    margin: 0px;
+    background-color: blue;
+    display: flex;
+    flex-direction: row;
+}
+
+.navBtn {
+    background-color: red;
+    height: 40px;
+    width: 40px;
+    margin: 20px;
+    font-size: large;
+    font-weight: 600;
+}
+
+#enterBtn {
+    font-size: medium;
+}
+
+.navBtn:hover {
+    background-color: lightcoral;
+}
+
+#urlBar {
+    height: 40px;
+    width: 200px;
+    margin: 20px;
+}
+
+#urlInput {
+    height: 30px;
+    width: 90%;
+}

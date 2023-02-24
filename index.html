@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <meta
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <link rel="stylesheet" href="index.css">
+    <title>social-browser</title>
+  </head>
+  <body>
+    <div id="navBar">
+      <div class="navBtn" id="backBtn">
+        &#8592; 
+      </div>
+      <div class="navBtn" id="fwdBtn">
+        &#8594;
+      </div>
+      <div id="urlBar">
+        <input type="text" id="urlInput" name="urlInput">
+      </div>
+      <div id="enterBtn" class="navBtn">
+        Enter
+      </div>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>
