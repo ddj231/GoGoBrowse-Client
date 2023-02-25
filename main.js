@@ -11,10 +11,12 @@ const createWindow = () => {
   });
 
   const view = new BrowserView()
+  view.webContents.on('did-finish-load', (ret) => {
+    win.webContents.send('urlChange', view.webContents.getURL());
+  });
   win.setBrowserView(view);
-  view.setBounds({ x: 0, y: 100, width: 800, height: 500});
+  view.setBounds({ x: 0, y: 79, width: 800, height: 500});
   view.setAutoResize({width: true, height: true});
-  // view.webContents.loadURL('https://google.com');
   win.loadFile('index.html');
 };
 
@@ -26,27 +28,30 @@ function handleChangeUrl(event, url) {
   .webContents.loadURL(url);
 }
 
-function handleBackPressed(event) {
+function getBrowserViewContents(event){
   const webContents = event.sender;
-  BrowserWindow
-  .fromWebContents(webContents)
-  .getBrowserView()
-  .webContents.goBack();
+  return BrowserWindow
+          .fromWebContents(webContents)
+          .getBrowserView().webContents;
+}
+
+function handleBackPressed(event) {
+  getBrowserViewContents(event).goBack();
 }
 
 function handleForwardPressed(event) {
-  const webContents = event.sender;
-  BrowserWindow
-  .fromWebContents(webContents)
-  .getBrowserView()
-  .webContents.goForward();
+  getBrowserViewContents(event).goForward();
 }
 
+function handleRefreshPressed(event) {
+  getBrowserViewContents(event).reload();
+}
 
 app.whenReady().then(() => {
   ipcMain.on('changeUrl', handleChangeUrl);
   ipcMain.on('backPressed', handleBackPressed); 
   ipcMain.on('forwardPressed', handleForwardPressed); 
+  ipcMain.on('refreshPressed', handleRefreshPressed); 
   createWindow();
 
   app.on('activate', () => {
