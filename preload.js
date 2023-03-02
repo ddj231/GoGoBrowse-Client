@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('webView', {
   goBack: () => ipcRenderer.send('backPressed'),
   goForward: () => ipcRenderer.send('forwardPressed'),
   refresh: () => ipcRenderer.send('refreshPressed'),
+  openChat: () => ipcRenderer.send('openChat'),
   handleURLChange : (callback)=> ipcRenderer.on('urlChange', callback),
 })

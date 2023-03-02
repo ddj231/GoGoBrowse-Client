@@ -1,6 +1,3 @@
-const func = async () => {
-}
-  
 window.webView
       .changeUrl('https://www.electronjs.org/docs/latest/tutorial/ipc');
 
@@ -39,3 +36,12 @@ window.webView.handleURLChange((_, value) => {
     inputBar.value = value;
     inputBar.blur();
 });
+
+const chatBtn = document.getElementById("chatBtn");
+
+
+chatBtn.addEventListener('click', ()=>{
+    window.webView.openChat();
+});
+
+

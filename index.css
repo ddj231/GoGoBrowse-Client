@@ -5,13 +5,13 @@ html, body {
 }
 
 #navBar {
-    background-color: #f8f8f8;
     display: flex;
     flex: row;
     height: 50px;
     border-bottom: solid;
-    border-color: #b8b8b8;
+    border-color: rgb(54, 99, 234);
     border-bottom-width: 1px;
+    background-color: rgb(54, 99, 234);
 }
 .navBtn {
     height: 30px;
@@ -22,12 +22,13 @@ html, body {
     font-size: medium;
     font-weight: 800;
     border-style: hidden;
-    background-color: #f8f8f8;
-    color: #585858;
+    background-color: rgb(54, 99, 234);
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
 }
 
 .navBtn:hover {
-    background-color: #f0f0f0;
+    background-color: rgb(47, 86, 206);
 }
 
 #enterBtn {
@@ -35,16 +36,17 @@ html, body {
 }
 
 .urlBar {
-    background: rgba(199, 199, 199, 0.2);
+    background: rgba(160, 160, 160, 0.2);
     display: flex;
     align-items: center;
     border-radius: 10px;
     padding-left: 5px;
     padding-right: 5px;
-    width: 50%;
+    width: 40%;
     height: 30px;
     margin-left: 5%;
     margin-top: 10px;
+    font-family: 'Courier New', Courier, monospace;
 }
 
 #urlInput {
@@ -55,5 +57,56 @@ html, body {
     flex: 1;
     padding-left: 10px;
     border: 0;
-    color:#282828;
+    color:#fff;
+    font-family: 'Courier New', Courier, monospace;
 }
+
+.roomBar {
+    background: rgba(160, 160, 160, 0.2);
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
+    width: 15%;
+    height: 30px;
+    margin-left: 10%;
+    margin-top: 10px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+#roomInput {
+    background: transparent;
+    outline: none;
+    align-self: center;
+    height: 30px;
+    flex: 1;
+    padding-left: 10px;
+    border: 0;
+    color:rgb(255, 108, 29);
+    font-family: 'Courier New', Courier, monospace;
+}
+
+::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+    color: #fff;
+    opacity: 1; /* Firefox */
+  }
+
+.liveBtn{
+    height: 30px; 
+    width: 40px; 
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: 10px;
+    font-size: x-small;
+    border: 0;
+    font-weight: 600;
+    background-color: rgb(54, 99, 234);
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.liveBtn:hover {
+    background-color: rgb(47, 86, 206);
+}
+
