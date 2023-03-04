@@ -6,5 +6,8 @@ contextBridge.exposeInMainWorld('webView', {
   goForward: () => ipcRenderer.send('forwardPressed'),
   refresh: () => ipcRenderer.send('refreshPressed'),
   openChat: () => ipcRenderer.send('openChat'),
+  log: (str)=>{ ipcRenderer.send('log', str)},
   handleURLChange : (callback)=> ipcRenderer.on('urlChange', callback),
+  handleDidStartLoad: (callback)=> ipcRenderer.on('startLoading', callback),
+  handleFailLoad: (callback)=> ipcRenderer.on('failLoad', callback),
 })

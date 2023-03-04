@@ -49,6 +49,22 @@ html, body {
     font-family: 'Courier New', Courier, monospace;
 }
 
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loader {
+    border: 3px solid rgba(160, 160, 160, 0.0); /* Light grey */
+    border-top: 3px solid rgb(255, 108, 29);
+    border-radius: 50%;
+    width: 10px;
+    height: 10px;
+    margin-top: 10px;
+    animation: spin 2s linear infinite;
+}
+  
+
 #urlInput {
     background: transparent;
     outline: none;
@@ -110,3 +126,10 @@ html, body {
     background-color: rgb(47, 86, 206);
 }
 
+#error {
+    width: 100%;
+    font-size: xx-large;
+    font-family: 'Courier New', Courier, monospace;
+    color: #000;
+    text-align: center;
+}

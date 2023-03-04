@@ -4,6 +4,7 @@ const path = require('path')
 class AppState {
     constructor(){
         this.chatWindowOpen = false;
+        this.chatWindow = {};
     }
 }
 
@@ -21,8 +22,17 @@ const createWindow = () => {
   });
 
   const view = new BrowserView()
-  view.webContents.on('did-finish-load', (ret) => {
-    win.webContents.send('urlChange', view.webContents.getURL());
+  view.webContents.on('did-start-loading', () => {
+    win.webContents.send('startLoading');
+  });
+  view.webContents.on('did-stop-loading', () => {
+    const value = {url: view.webContents.getURL(), 
+                  canGoBack: view.webContents.canGoBack(), 
+                  canGoForward: view.webContents.canGoForward()};
+    win.webContents.send('urlChange', value);
+  });
+  view.webContents.on('did-fail-load', () => {
+    win.webContents.send('failLoad');
   });
   win.setBrowserView(view);
   view.setBounds({ x: 0, y: 79, width: 800, height: 600 - 79});
@@ -40,6 +50,7 @@ const createChatWindow = () => {
     }, 
   });
   win.loadFile('chatBox.html');
+  return win;
 }
 
 function handleChangeUrl(event, url) {
@@ -70,7 +81,14 @@ function handleRefreshPressed(event) {
 }
 
 function handleOpenChat(){
-  createChatWindow();
+  if(!appState.chatWindowOpen){
+    appState.chatWindow =  createChatWindow();
+    appState.chatWindowOpen = true;
+    appState.chatWindow.on('closed', () => {
+      appState.chatWindowOpen = false;
+      appState.chatWindow = {};
+    });
+  }
 }
 
 app.whenReady().then(() => {
@@ -79,6 +97,7 @@ app.whenReady().then(() => {
   ipcMain.on('forwardPressed', handleForwardPressed); 
   ipcMain.on('refreshPressed', handleRefreshPressed); 
   ipcMain.on('openChat', handleOpenChat); 
+  ipcMain.on('log', (_event, str) => {console.log(str)}); 
   createWindow();
 
   app.on('activate', () => {

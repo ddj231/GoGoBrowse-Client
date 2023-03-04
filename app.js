@@ -1,16 +1,25 @@
+const log = window.webView.log;
+log('hello world');
 window.webView
       .changeUrl('https://www.electronjs.org/docs/latest/tutorial/ipc');
 
 const inputBar = document.querySelector("#urlInput");
 inputBar.value =  'https://www.electronjs.org/docs/latest/tutorial/ipc'
+inputBar.addEventListener('focus', () => {
+    inputBar.setSelectionRange(0, inputBar.value.length);
+});
 
 document.addEventListener('keyup', (event) => {
-    console.log("key up");
     if(event.code == 'Enter') {
-        console.log("enter pressed");
         //enter pressed
         if(inputBar === document.activeElement){
-            window.webView.changeUrl(inputBar.value);
+            let value = inputBar.value;
+            if(value.substr(0,8) != "https://" 
+                    && value.substr(0, 7) != "http://"){
+                value = "https://" + value;
+            }
+            window.webView.changeUrl(value);
+            spinner.style.display = 'block';
             inputBar.blur();
         }
     }
@@ -19,6 +28,11 @@ document.addEventListener('keyup', (event) => {
 const backBtn = document.querySelector("#backBtn");
 const fwdBtn = document.querySelector("#fwdBtn");
 const refreshBtn = document.querySelector("#refreshBtn");
+const spinner = document.querySelector("#spinner");
+spinner.style.display = 'none';
+const error = document.querySelector("#error");
+error.style.display = 'none';
+
 
 backBtn.addEventListener('click', () =>{
     window.webView.goBack();
@@ -33,8 +47,35 @@ refreshBtn.addEventListener('click', () =>{
 })
 
 window.webView.handleURLChange((_, value) => {
-    inputBar.value = value;
+    inputBar.value = value.url;
+    spinner.style.display = 'none';
     inputBar.blur();
+    if(!value.canGoBack) {
+        backBtn.style.opacity = '0.5';
+        backBtn.disabled = true;
+    }
+    else {
+        backBtn.style.opacity = '1.0';
+        backBtn.disabled = false;
+    }
+
+    if(!value.canGoForward) {
+        fwdBtn.style.opacity = '0.5';
+        fwdBtn.disabled = true;
+    }
+    else {
+        fwdBtn.style.opacity = '1.0';
+        fwdBtn.disabled = false;
+    }
+});
+
+window.webView.handleDidStartLoad(() => {
+    spinner.style.display = 'block';
+    error.style.display = 'none';
+});
+
+window.webView.handleFailLoad(() => {
+    error.style.display = 'block';
 });
 
 const chatBtn = document.getElementById("chatBtn");
