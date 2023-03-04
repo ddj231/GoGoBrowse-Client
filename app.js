@@ -6,7 +6,9 @@ window.webView
 const inputBar = document.querySelector("#urlInput");
 inputBar.value =  'https://www.electronjs.org/docs/latest/tutorial/ipc'
 inputBar.addEventListener('focus', () => {
-    inputBar.setSelectionRange(0, inputBar.value.length);
+    inputBar.addEventListener('mouseup', () =>{
+        inputBar.setSelectionRange(0, inputBar.value.length);
+    })
 });
 
 document.addEventListener('keyup', (event) => {
