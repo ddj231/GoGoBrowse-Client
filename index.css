@@ -75,6 +75,7 @@ html, body {
     border: 0;
     color:#fff;
     font-family: 'Courier New', Courier, monospace;
+    overflow: scroll;
 }
 
 .roomBar {
@@ -101,6 +102,7 @@ html, body {
     border: 0;
     color:rgb(255, 108, 29);
     font-family: 'Courier New', Courier, monospace;
+    overflow: scroll;
 }
 
 ::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */

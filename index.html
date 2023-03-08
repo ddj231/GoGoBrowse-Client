@@ -3,14 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'"
-    />
-    <meta
-      http-equiv="X-Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'"
-    />
     <link rel="stylesheet" href="index.css">
     <title>social-browser</title>
   </head>
@@ -27,10 +19,12 @@
             <input type="text" class="form-control" 
                 placeholder="room #" id="roomInput" name="roomInput">
           </div>
-          <button id="liveBtn" type="button" class="liveBtn">join</button>
+          <button id="newBtn" type="button" class="liveBtn">new</button>
+          <button id="joinBtn" type="button" class="liveBtn">join</button>
           <button id="chatBtn" type="button" class="liveBtn">chat</button>
   </div>
   <div id="error">Error Loading Page</div>
+    <script src="./node_modules/socket.io/client-dist/socket.io.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

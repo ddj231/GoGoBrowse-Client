@@ -1,5 +1,8 @@
 const log = window.webView.log;
 log('hello world');
+let follow = false;
+
+const socket = io("http://localhost:3000");
 window.webView
       .changeUrl('https://www.electronjs.org/docs/latest/tutorial/ipc');
 
@@ -48,10 +51,12 @@ refreshBtn.addEventListener('click', () =>{
     window.webView.refresh();
 })
 
+
 window.webView.handleURLChange((_, value) => {
     inputBar.value = value.url;
     spinner.style.display = 'none';
     inputBar.blur();
+    socket.emit('url', value.url);
     if(!value.canGoBack) {
         backBtn.style.opacity = '0.5';
         backBtn.disabled = true;
@@ -81,10 +86,38 @@ window.webView.handleFailLoad(() => {
 });
 
 const chatBtn = document.getElementById("chatBtn");
+const newBtn = document.getElementById("newBtn");
+const joinBtn = document.getElementById("joinBtn");
+const roomInput = document.getElementById("roomInput");
 
 
 chatBtn.addEventListener('click', ()=>{
     window.webView.openChat();
+});
+
+joinBtn.addEventListener('click', ()=>{
+    socket.emit('join', roomInput.value);
+});
+
+newBtn.addEventListener('click', ()=>{
+    window.webView.randomString().then((str) => {
+        socket.emit('new', str);
+        roomInput.value = str;
+    });
+});
+
+socket.on('url', (url)=>{
+    window.webView.changeUrl(url);
+});
+
+socket.on('join', (didJoin)=>{
+    log("did join room:");
+    log(didJoin);
+});
+
+socket.on('new', (didCreate)=>{
+    log("did create room:");
+    log(didCreate);
 });
 
 

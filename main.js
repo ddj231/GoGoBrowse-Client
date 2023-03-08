@@ -1,3 +1,4 @@
+const { randomInt } = require('crypto');
 const { app, BrowserView, BrowserWindow, ipcMain } = require('electron');
 const path = require('path')
 
@@ -91,6 +92,15 @@ function handleOpenChat(){
   }
 }
 
+function randomString(len){
+  const letters = "abcdefghijklmnopqrstuvwxyz1234567890"
+  let output = "";
+  for(let i =0; i < len; i++){
+    output += letters[randomInt(letters.length)];
+  }
+  return output;
+}
+
 app.whenReady().then(() => {
   ipcMain.on('changeUrl', handleChangeUrl);
   ipcMain.on('backPressed', handleBackPressed); 
@@ -98,6 +108,7 @@ app.whenReady().then(() => {
   ipcMain.on('refreshPressed', handleRefreshPressed); 
   ipcMain.on('openChat', handleOpenChat); 
   ipcMain.on('log', (_event, str) => {console.log(str)}); 
+  ipcMain.handle('randomString', () => { return randomString(30)});
   createWindow();
 
   app.on('activate', () => {
