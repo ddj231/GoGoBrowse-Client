@@ -4,6 +4,29 @@ html, body {
     width: 100%;
 }
 
+#statusBar {
+    display: flex;
+    flex: row;
+    height: 20px;
+    background-color:rgb(255, 108, 29); 
+    color: #fff;
+    font-size: small;
+    font-weight: 400;
+}
+
+.statusItem {
+    flex: 2;
+    align-self: flex-end;
+    margin-left: 5px;
+}
+
+.roomSync {
+    flex: 1;
+    align-self: flex-end;
+    margin-left: 5px;
+    justify-content: flex-end;
+}
+
 #navBar {
     display: flex;
     flex: row;

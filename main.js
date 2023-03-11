@@ -36,7 +36,7 @@ const createWindow = () => {
     win.webContents.send('failLoad');
   });
   win.setBrowserView(view);
-  view.setBounds({ x: 0, y: 79, width: 800, height: 600 - 79});
+  view.setBounds({ x: 0, y: 99, width: 800, height: 600 - 99});
   view.setAutoResize({width: true, height: true});
   win.loadFile('index.html');
 };
@@ -108,7 +108,7 @@ app.whenReady().then(() => {
   ipcMain.on('refreshPressed', handleRefreshPressed); 
   ipcMain.on('openChat', handleOpenChat); 
   ipcMain.on('log', (_event, str) => {console.log(str)}); 
-  ipcMain.handle('randomString', () => { return randomString(30)});
+  ipcMain.handle('randomString', () => { return randomString(25)});
   createWindow();
 
   app.on('activate', () => {

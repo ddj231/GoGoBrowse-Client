@@ -89,6 +89,9 @@ const chatBtn = document.getElementById("chatBtn");
 const newBtn = document.getElementById("newBtn");
 const joinBtn = document.getElementById("joinBtn");
 const roomInput = document.getElementById("roomInput");
+const leadingStatus = document.getElementById("leadingStatus");
+const joinedStatus = document.getElementById("joinedStatus");
+const roomSyncedStatus = document.getElementById("roomSyncedStatus");
 
 
 chatBtn.addEventListener('click', ()=>{
@@ -110,14 +113,20 @@ socket.on('url', (url)=>{
     window.webView.changeUrl(url);
 });
 
-socket.on('join', (didJoin)=>{
+socket.on('join', (data)=>{
     log("did join room:");
-    log(didJoin);
+    log(data.didJoin);
+    if(data.didJoin){
+        joinedStatus.innerText = "joined room: " + data.roomId; 
+    }
 });
 
-socket.on('new', (didCreate)=>{
+socket.on('new', (data)=>{
     log("did create room:");
-    log(didCreate);
+    log(data.didCreate);
+    if(data.didCreate){
+        leadingStatus.innerText = "leading room: " + data.roomId; 
+    }
 });
 
 
