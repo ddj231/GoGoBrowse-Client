@@ -21,13 +21,15 @@
           </div>
           <button id="newBtn" type="button" class="liveBtn">new</button>
           <button id="joinBtn" type="button" class="liveBtn">join</button>
-          <button id="chatBtn" type="button" class="liveBtn">chat</button>
+          <button id="micBtn" type="button" class="liveBtn">&#128227;</button>
   </div>
   <div id="statusBar">
-    <div id="leadingStatus" class="statusItem">leading room: </div>
-    <div id="joinedStatus" class="statusItem">joined room: </div>
+    <div id="leadingStatus" class="statusItem">leader: none</div>
+    <div id="joinedStatus" class="statusItem">guest: none</div>
     <div id="roomSyncedStatus" class="roomSync">room is synced</div>
   </div>
+  <audio id="myAudio" class="video"></audio>
+  <audio id="friendAudio" class="video2"></audio>
   <div id="error">Error Loading Page</div>
     <script src="./node_modules/socket.io/client-dist/socket.io.js"></script>
     <script src="./app.js"></script>

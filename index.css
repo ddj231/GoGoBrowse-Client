@@ -158,3 +158,10 @@ html, body {
     color: #000;
     text-align: center;
 }
+#micBtn {
+    font-size: medium;
+}
+
+#video {
+    display: none;
+}

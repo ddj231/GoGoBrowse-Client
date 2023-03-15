@@ -2,6 +2,7 @@ const { randomInt } = require('crypto');
 const { app, BrowserView, BrowserWindow, ipcMain } = require('electron');
 const path = require('path')
 
+
 class AppState {
     constructor(){
         this.chatWindowOpen = false;
