@@ -24,9 +24,11 @@ const servers = {
   ],
   iceCandidatePoolSize: 10,
 };
-let pc = new RTCPeerConnection(servers);
+
+let pc = null;
 let localStream = null;
 let remoteStream = null;
+
 
 let myAudio = document.getElementById("myAudio");
 let friendAudio = document.getElementById("friendAudio");
@@ -114,7 +116,9 @@ joinBtn.addEventListener('click', ()=>{
     socket.emit('join', roomInput.value);
 });
 
-function StartStreamingData(){
+function StartStreamingData(pc, doAction){
+    remoteStream = new MediaStream();
+
     navigator.mediaDevices
     .getUserMedia({audio: true, video: false})
     .then((stream) => {
@@ -123,30 +127,27 @@ function StartStreamingData(){
         localStream.getTracks().forEach((track) => {
             pc.addTrack(track, localStream);
         });
-        // myAudio.srcObject = localStream;
         friendAudio.srcObject = remoteStream;
-        //myAudio.play();
-        friendAudio.play();
+
+        pc.ontrack = (event) =>{
+            event.streams[0].getTracks().forEach((track) => {
+                remoteStream.addTrack(track);
+            });
+        }
+
+        doAction();
     })
     .catch(() =>{// there was an error getting user's mic
     });
+    // friendAudio.play();
 }
 
-StartStreamingData();
 
 const micBtn = document.getElementById("micBtn");
 micBtn.addEventListener('click', () =>{
     log("mic clicked");
-    StartStreamingData();
 });
 
-remoteStream = new MediaStream();
-pc.ontrack = (event) =>{
-    event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
-    });
-}
-friendAudio.play();
 
 
 newBtn.addEventListener('click', ()=>{
@@ -168,45 +169,50 @@ socket.on('join', (data)=>{
     if(!data.didJoin){
         return;
     }
+    if(pc){
+        pc.close();
+    }
+    pc = new RTCPeerConnection(servers);
     joinedStatus.innerText = "guest: me(" + data.me.substr(0, 5) +")"; 
     leadingStatus.innerText = "leader: (" + data.leader.substr(0, 5) + ")";
-    let callID = data.roomId;
-    pc.onicecandidate = (event)=>{
-        if(event.candidate){
-            socket.emit('answerCandidates', {room: callID, 
-                                        answerCandidate: event.candidate.toJSON()})
+    StartStreamingData(pc, ()=>{
+        let callID = data.roomId;
+        pc.onicecandidate = (event)=>{
+            if(event.candidate){
+                socket.emit('answerCandidates', {room: callID, 
+                                            answerCandidate: event.candidate.toJSON()})
+            }
         }
-    }
-    socket.emit('getCallData');
+        socket.emit('getCallData');
 
-    socket.on('getCallData', (callData) => {
-        log(callData);
-        const offerDescription = callData.offer;
-        log("offer description");
-        log(offerDescription);
-        pc.setRemoteDescription(new RTCSessionDescription(offerDescription))
-        .then(() => {
-            pc.createAnswer().then((answerDesc) => {
-                pc.setLocalDescription(answerDesc).then(()=>{
-                    const answer= {
-                        sdp: answerDesc.sdp,
-                        type: answerDesc.type
-                    }
-                    socket.emit('answer', {room: callID, answer: answer });
-                })
-                socket.on('offerCandidates', (data) => {
-                    log("getting offer candidates");
-                    for(let cand of data){
-                        log("offer candidate");
-                        log(cand);
-                        const candidate = new RTCIceCandidate(cand);
-                        pc.addIceCandidate(candidate);
-                    }
+        socket.on('getCallData', (callData) => {
+            log(callData);
+            const offerDescription = callData.offer;
+            log("offer description");
+            log(offerDescription);
+            pc.setRemoteDescription(new RTCSessionDescription(offerDescription))
+            .then(() => {
+                pc.createAnswer().then((answerDesc) => {
+                    pc.setLocalDescription(answerDesc).then(()=>{
+                        const answer= {
+                            sdp: answerDesc.sdp,
+                            type: answerDesc.type
+                        }
+                        socket.emit('answer', {room: callID, answer: answer });
+                    })
+                    socket.on('offerCandidates', (data) => {
+                        log("getting offer candidates");
+                        for(let cand of data){
+                            log("offer candidate");
+                            log(cand);
+                            const candidate = new RTCIceCandidate(cand);
+                            pc.addIceCandidate(candidate);
+                        }
+                    });
                 });
             });
         });
     });
-
 });
 
 socket.on('new', (data)=>{
@@ -215,52 +221,56 @@ socket.on('new', (data)=>{
     if(!data.didCreate){
         return;
     }
-    log(data);
+    if(pc){
+        pc.close();
+    }
+    pc = new RTCPeerConnection(servers);
+    StartStreamingData(pc, ()=> {
+        pc.onicecandidate = (event)=>{
+            if(event.candidate){
+                socket.emit('offerCandidates', {room: callID, 
+                                            offerCandidate: event.candidate.toJSON()})
+            }
+        }
+
+        var mediaConstraints = {
+            'offerToReceiveAudio': true,
+            'offerToReceiveVideo': false 
+        };
+
+        // create offer
+        pc.createOffer(mediaConstraints).then((offerDesc) =>{
+            pc.setLocalDescription(offerDesc).then(() =>{
+                const offer = {
+                    sdp: offerDesc.sdp,
+                    type: offerDesc.type
+                }
+                socket.emit('offer', {room: callID, offer: offer});
+                socket.on('answer', (data) =>{
+                    log("answer");
+                    if(!pc.currentRemoteDescription && data.answer){
+                        const answerDesc = new RTCSessionDescription(data.answer);
+                        pc.setRemoteDescription(answerDesc);
+                        log("set Remote Desc");
+                        log(data.answer);
+                    }
+                });
+
+                socket.on('answerCandidates', (data) => {
+                    log("getting answer candidates");
+                    for(let cand of data){
+                        log("answer candidate");
+                        log(cand);
+                        const candidate = new RTCIceCandidate(cand);
+                        pc.addIceCandidate(candidate);
+                    }
+                });
+            })
+        });
+    })
     leadingStatus.innerText = "leader: me(" + data.me.substr(0,5) +")"; 
     joinedStatus.innerText = "guest: none"; 
     let callID = data.roomId;
-    pc.onicecandidate = (event)=>{
-        if(event.candidate){
-            socket.emit('offerCandidates', {room: callID, 
-                                        offerCandidate: event.candidate.toJSON()})
-        }
-    }
-
-    var mediaConstraints = {
-        'offerToReceiveAudio': true,
-        'offerToReceiveVideo': false 
-    };
-
-    // create offer
-    pc.createOffer(mediaConstraints).then((offerDesc) =>{
-        pc.setLocalDescription(offerDesc).then(() =>{
-            const offer = {
-                sdp: offerDesc.sdp,
-                type: offerDesc.type
-            }
-            socket.emit('offer', {room: callID, offer: offer});
-            socket.on('answer', (data) =>{
-                log("answer");
-                if(!pc.currentRemoteDescription && data.answer){
-                    const answerDesc = new RTCSessionDescription(data.answer);
-                    pc.setRemoteDescription(answerDesc);
-                    log("set Remote Desc");
-                    log(data.answer);
-                }
-            });
-
-            socket.on('answerCandidates', (data) => {
-                log("getting answer candidates");
-                for(let cand of data){
-                    log("answer candidate");
-                    log(cand);
-                    const candidate = new RTCIceCandidate(cand);
-                    pc.addIceCandidate(candidate);
-                }
-            });
-        })
-    });
-
 });
 
 socket.on('friendJoined', (data) => {  
