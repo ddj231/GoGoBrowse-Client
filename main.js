@@ -39,6 +39,16 @@ const createWindow = () => {
   win.setBrowserView(view);
   view.setBounds({ x: 0, y: 99, width: 800, height: 600 - 99});
   view.setAutoResize({width: true, height: true});
+  view.webContents.on('new-window', (event, url) => {
+    console.log("attempt to open new window");
+    event.preventDefault();
+    view.webContents.loadURL(url);
+  });
+  win.webContents.on('new-window', (event, url) => {
+    console.log("attempt to open new window");
+    event.preventDefault();
+    view.webContents.loadURL(url);
+  });
   win.loadFile('index.html');
 };
 

@@ -147,8 +147,24 @@ html, body {
     font-family: 'Courier New', Courier, monospace;
 }
 
+
 .liveBtn:hover {
     background-color: rgb(47, 86, 206);
+}
+
+.leaveBtn {
+    width: 40px; 
+    font-size: x-small;
+    border: 0;
+    font-weight: 600;
+    background-color: #ff0000;
+    color:#fff;
+    font-family: 'Courier New', Courier, monospace;
+    flex: 1;
+}
+
+.leaveBtn:hover {
+    background-color: #ce0a0a;
 }
 
 #error {

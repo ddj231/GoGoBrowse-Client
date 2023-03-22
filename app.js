@@ -1,5 +1,4 @@
 const log = window.webView.log;
-log('hello world');
 let follow = false;
 
 const socket = io("http://localhost:3000");
@@ -111,6 +110,8 @@ const roomInput = document.getElementById("roomInput");
 const leadingStatus = document.getElementById("leadingStatus");
 const joinedStatus = document.getElementById("joinedStatus");
 const roomSyncedStatus = document.getElementById("roomSyncedStatus");
+const leaveBtn = document.querySelector("#leaveBtn");
+leaveBtn.style.display = "none";
 
 joinBtn.addEventListener('click', ()=>{
     socket.emit('join', roomInput.value);
@@ -139,7 +140,6 @@ function StartStreamingData(pc, doAction){
     })
     .catch(() =>{// there was an error getting user's mic
     });
-    // friendAudio.play();
 }
 
 
@@ -169,6 +169,7 @@ socket.on('join', (data)=>{
     if(!data.didJoin){
         return;
     }
+    leaveBtn.style.display = "block";
     if(pc){
         pc.close();
     }
@@ -186,10 +187,8 @@ socket.on('join', (data)=>{
         socket.emit('getCallData');
 
         socket.on('getCallData', (callData) => {
-            log(callData);
-            const offerDescription = callData.offer;
+            const offerDescription = callData.offers[0].offer;
             log("offer description");
-            log(offerDescription);
             pc.setRemoteDescription(new RTCSessionDescription(offerDescription))
             .then(() => {
                 pc.createAnswer().then((answerDesc) => {
@@ -202,10 +201,9 @@ socket.on('join', (data)=>{
                     })
                     socket.on('offerCandidates', (data) => {
                         log("getting offer candidates");
-                        for(let cand of data){
+                        for(let candData of data){
                             log("offer candidate");
-                            log(cand);
-                            const candidate = new RTCIceCandidate(cand);
+                            const candidate = new RTCIceCandidate(candData.cand);
                             pc.addIceCandidate(candidate);
                         }
                     });
@@ -221,6 +219,7 @@ socket.on('new', (data)=>{
     if(!data.didCreate){
         return;
     }
+    leaveBtn.style.display = "block";
     if(pc){
         pc.close();
     }
@@ -247,21 +246,20 @@ socket.on('new', (data)=>{
                 }
                 socket.emit('offer', {room: callID, offer: offer});
                 socket.on('answer', (data) =>{
-                    log("answer");
-                    if(!pc.currentRemoteDescription && data.answer){
-                        const answerDesc = new RTCSessionDescription(data.answer);
-                        pc.setRemoteDescription(answerDesc);
-                        log("set Remote Desc");
-                        log(data.answer);
+                    for(const elem of data){
+                        if(!pc.currentRemoteDescription && elem.answer){
+                            const answerDesc = new RTCSessionDescription(elem.answer);
+                            pc.setRemoteDescription(answerDesc);
+                            log("set Remote Desc");
+                        }
                     }
                 });
 
                 socket.on('answerCandidates', (data) => {
                     log("getting answer candidates");
-                    for(let cand of data){
+                    for(let candData of data){
                         log("answer candidate");
-                        log(cand);
-                        const candidate = new RTCIceCandidate(cand);
+                        const candidate = new RTCIceCandidate(candData.cand);
                         pc.addIceCandidate(candidate);
                     }
                 });
@@ -273,8 +271,35 @@ socket.on('new', (data)=>{
     let callID = data.roomId;
 });
 
-socket.on('friendJoined', (data) => {  
-    joinedStatus.innerText = "guest: (" + data.friend.substr(0, 5) + ")"; 
+
+leaveBtn.addEventListener('click', () => {
+    log("leaving current room");
+    socket.emit('leaveCurrentRoom');
+});
+
+socket.on('leaveCurrentRoom', () => {
+    if(pc){
+        pc.close();
+    }
+    log("leaving current room");
+    joinedStatus.innerText = "guest: none";
+    leadingStatus.innerText = "leader: none";
+    leaveBtn.style.display = "none";
+});
+
+socket.on('peerLeft', () => {
+    if(pc){
+        pc.close();
+    }
+    log("peer left");
+    joinedStatus.innerText = "guest: none";
+    leadingStatus.innerText = "leader: none";
+    leaveBtn.style.display = "none";
+});
+
+socket.on('peerJoined', (data) => {  
+    log("peer joined");
+    joinedStatus.innerText = "guest: (" + data.peer.substr(0, 5) + ")"; 
 })
 
 
