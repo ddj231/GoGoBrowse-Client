@@ -1,9 +1,12 @@
 const log = window.webView.log;
 let follow = false;
+let isInRoom = false;
 
 const socket = io("http://localhost:3000");
+
+let current_url = "https://www.google.com";
 window.webView
-      .changeUrl('https://www.electronjs.org/docs/latest/tutorial/ipc');
+      .changeUrl('https://www.google.com');
 
 const inputBar = document.querySelector("#urlInput");
 inputBar.value =  'https://www.electronjs.org/docs/latest/tutorial/ipc'
@@ -58,6 +61,7 @@ const error = document.querySelector("#error");
 error.style.display = 'none';
 
 
+
 backBtn.addEventListener('click', () =>{
     window.webView.goBack();
 })
@@ -68,9 +72,9 @@ fwdBtn.addEventListener('click', () =>{
 
 refreshBtn.addEventListener('click', () =>{
     window.webView.refresh();
+    socket.emit('url', current_url);
 })
 
-let current_url = "";
 window.webView.handleURLChange((_, value) => {
     inputBar.value = value.url;
     spinner.style.display = 'none';
@@ -127,6 +131,7 @@ function LeaveRoom(){
         pc.close();
     }
     log("peer left");
+    isInRoom = false;
     joinedStatus.innerText = "guest: none";
     leadingStatus.innerText = "leader: none";
     leaveBtn.style.display = "none";
@@ -189,12 +194,13 @@ socket.on('join', (data)=>{
         return;
     }
     leaveBtn.style.display = "block";
+    isInRoom = true;
     if(pc){
         pc.close();
     }
     pc = new RTCPeerConnection(servers);
-    joinedStatus.innerText = "guest: me(" + data.me.substr(0, 5) +")"; 
-    leadingStatus.innerText = "leader: (" + data.leader.substr(0, 5) + ")";
+    joinedStatus.innerText = "guest: me(" + data.me.substr(0, 7) +")"; 
+    leadingStatus.innerText = "leader: (" + data.leader.substr(0, 7) + ")";
     StartStreamingData(pc, ()=>{
         let callID = data.roomId;
         pc.onicecandidate = (event)=>{
@@ -239,6 +245,7 @@ socket.on('new', (data)=>{
         return;
     }
     leaveBtn.style.display = "block";
+    isInRoom = true;
     if(pc){
         pc.close();
     }
@@ -309,4 +316,22 @@ socket.on('peerJoined', (data) => {
     joinedStatus.innerText = "guest: (" + data.peer.substr(0, 7) + ")"; 
 })
 
+
+function CheckIsRoomSynced(){
+    if(isInRoom){
+        socket.emit('isRoomSynced', current_url);
+    }
+    setTimeout(CheckIsRoomSynced, 1000);
+}
+
+CheckIsRoomSynced();
+
+socket.on('isRoomSynced', (isSynced) => {
+    if(isSynced){
+        roomSyncedStatus.innerText = "room is synced";
+    }
+    else {
+        roomSyncedStatus.innerText = "room is not synced";
+    }
+});
 
