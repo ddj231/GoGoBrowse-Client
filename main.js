@@ -2,6 +2,8 @@ const { randomInt } = require('crypto');
 const { app, BrowserView, BrowserWindow, ipcMain } = require('electron');
 const path = require('path')
 
+let current_url = "";
+
 
 class AppState {
     constructor(){
@@ -39,15 +41,16 @@ const createWindow = () => {
   win.setBrowserView(view);
   view.setBounds({ x: 0, y: 99, width: 800, height: 600 - 99});
   view.setAutoResize({width: true, height: true});
-  view.webContents.on('new-window', (event, url) => {
-    console.log("attempt to open new window");
-    event.preventDefault();
+  view.webContents.setWindowOpenHandler(({url}) => {
+    console.log("stopping window open");
     view.webContents.loadURL(url);
+    return {action: 'deny'};
   });
-  win.webContents.on('new-window', (event, url) => {
-    console.log("attempt to open new window");
-    event.preventDefault();
-    view.webContents.loadURL(url);
+  win.on('session-end', () => {
+   win.webContents.send('close');
+  })
+  win.on('close', () => {
+   win.webContents.send('close');
   });
   win.loadFile('index.html');
 };
@@ -118,7 +121,7 @@ app.whenReady().then(() => {
   ipcMain.on('forwardPressed', handleForwardPressed); 
   ipcMain.on('refreshPressed', handleRefreshPressed); 
   ipcMain.on('openChat', handleOpenChat); 
-  ipcMain.on('log', (_event, str) => {console.log(str)}); 
+  ipcMain.on('log', (_event, ...str) => {console.log(...str)}); 
   ipcMain.handle('randomString', () => { return randomString(25)});
   createWindow();
 

@@ -70,12 +70,17 @@ refreshBtn.addEventListener('click', () =>{
     window.webView.refresh();
 })
 
-
+let current_url = "";
 window.webView.handleURLChange((_, value) => {
     inputBar.value = value.url;
     spinner.style.display = 'none';
     inputBar.blur();
-    socket.emit('url', value.url);
+    // only send updates when url changes (helps prevent unneccessary sends
+    // that can make the friend url glitchy)
+    if(current_url != value.url){
+      current_url = value.url;
+      socket.emit('url', value.url);
+    }
     if(!value.canGoBack) {
         backBtn.style.opacity = '0.5';
         backBtn.disabled = true;
@@ -115,6 +120,20 @@ leaveBtn.style.display = "none";
 
 joinBtn.addEventListener('click', ()=>{
     socket.emit('join', roomInput.value);
+});
+
+function LeaveRoom(){
+    if(pc){
+        pc.close();
+    }
+    log("peer left");
+    joinedStatus.innerText = "guest: none";
+    leadingStatus.innerText = "leader: none";
+    leaveBtn.style.display = "none";
+}
+
+window.webView.handleCloseApp((_, value) => {
+    socket.emit('leaveCurrentRoom');
 });
 
 function StartStreamingData(pc, doAction){
@@ -266,7 +285,7 @@ socket.on('new', (data)=>{
             })
         });
     })
-    leadingStatus.innerText = "leader: me(" + data.me.substr(0,5) +")"; 
+    leadingStatus.innerText = "leader: me(" + data.me.substr(0,7) +")"; 
     joinedStatus.innerText = "guest: none"; 
     let callID = data.roomId;
 });
@@ -278,28 +297,16 @@ leaveBtn.addEventListener('click', () => {
 });
 
 socket.on('leaveCurrentRoom', () => {
-    if(pc){
-        pc.close();
-    }
-    log("leaving current room");
-    joinedStatus.innerText = "guest: none";
-    leadingStatus.innerText = "leader: none";
-    leaveBtn.style.display = "none";
+    LeaveRoom();
 });
 
 socket.on('peerLeft', () => {
-    if(pc){
-        pc.close();
-    }
-    log("peer left");
-    joinedStatus.innerText = "guest: none";
-    leadingStatus.innerText = "leader: none";
-    leaveBtn.style.display = "none";
+    LeaveRoom();
 });
 
 socket.on('peerJoined', (data) => {  
     log("peer joined");
-    joinedStatus.innerText = "guest: (" + data.peer.substr(0, 5) + ")"; 
+    joinedStatus.innerText = "guest: (" + data.peer.substr(0, 7) + ")"; 
 })
 
 
