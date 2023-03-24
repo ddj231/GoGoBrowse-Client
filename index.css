@@ -25,6 +25,7 @@ html, body {
     align-self: flex-end;
     margin-left: 5px;
     justify-content: flex-end;
+    color:rgb(255, 255, 255);
 }
 
 #navBar {
@@ -34,7 +35,7 @@ html, body {
     border-bottom: solid;
     border-color: rgb(54, 99, 234);
     border-bottom-width: 1px;
-    background-color: rgb(54, 99, 234);
+    background-color: rgb(11, 66, 230);
 }
 .navBtn {
     height: 30px;
@@ -45,13 +46,15 @@ html, body {
     font-size: medium;
     font-weight: 800;
     border-style: hidden;
-    background-color: rgb(54, 99, 234);
+    /*background-color: rgb(54, 99, 234);*/
+    background-color: rgb(11, 66, 230);
     color: #fff;
     font-family: 'Courier New', Courier, monospace;
 }
 
 .navBtn:hover {
-    background-color: rgb(47, 86, 206);
+    /*background-color: rgb(47, 86, 206);*/
+    background-color: rgb(10, 57, 200, 0.5);
 }
 
 #enterBtn {
@@ -65,7 +68,7 @@ html, body {
     border-radius: 10px;
     padding-left: 5px;
     padding-right: 5px;
-    width: 40%;
+    flex: 3;
     height: 30px;
     margin-left: 5%;
     margin-top: 10px;
@@ -110,7 +113,7 @@ html, body {
     padding-right: 5px;
     width: 15%;
     height: 30px;
-    margin-left: 10%;
+    margin-left: 5%;
     margin-top: 10px;
     font-family: 'Courier New', Courier, monospace;
 }
@@ -142,14 +145,16 @@ html, body {
     font-size: x-small;
     border: 0;
     font-weight: 600;
-    background-color: rgb(54, 99, 234);
+    /*background-color: rgb(54, 99, 234);*/
+    background-color: rgb(11, 66, 230);
     color: #fff;
     font-family: 'Courier New', Courier, monospace;
 }
 
 
 .liveBtn:hover {
-    background-color: rgb(47, 86, 206);
+    /*background-color: rgb(6, 57, 211);*/
+    background-color: rgb(10, 57, 200, 0.5);
 }
 
 .leaveBtn {

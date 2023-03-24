@@ -28,8 +28,15 @@ const servers = {
 };
 
 let pc = null;
+
 let localStream = null;
 let remoteStream = null;
+
+navigator.mediaDevices
+.getUserMedia({audio: true, video: false})
+.then((stream) => {
+    localStream = stream; 
+});
 
 
 let myAudio = document.getElementById("myAudio");
@@ -135,6 +142,8 @@ function LeaveRoom(){
     joinedStatus.innerText = "guest: none";
     leadingStatus.innerText = "leader: none";
     leaveBtn.style.display = "none";
+    roomSyncedStatus.innerText = "";
+    roomInput.value = "";
 }
 
 window.webView.handleCloseApp((_, value) => {
@@ -160,6 +169,10 @@ function StartStreamingData(pc, doAction){
             });
         }
 
+        if(micBtn.style.opacity == 0.5){
+            localStream.getTracks()[0].enabled = false;
+        }
+
         doAction();
     })
     .catch(() =>{// there was an error getting user's mic
@@ -169,7 +182,17 @@ function StartStreamingData(pc, doAction){
 
 const micBtn = document.getElementById("micBtn");
 micBtn.addEventListener('click', () =>{
-    log("mic clicked");
+    if(localStream){
+        let enabled =localStream.getTracks()[0].enabled;
+        if(enabled){
+            localStream.getTracks()[0].enabled = false;
+            micBtn.style.opacity = 0.5;
+        }
+        else {
+            localStream.getTracks()[0].enabled = true;
+            micBtn.style.opacity = 1.0;
+        }
+    }
 });
 
 
@@ -191,6 +214,7 @@ socket.on('join', (data)=>{
     log("did join room:");
     log(data.didJoin);
     if(!data.didJoin){
+        roomSyncedStatus.innerText = "could not join room";
         return;
     }
     leaveBtn.style.display = "block";
@@ -244,6 +268,7 @@ socket.on('new', (data)=>{
     if(!data.didCreate){
         return;
     }
+    roomSyncedStatus.innerText = "room created";
     leaveBtn.style.display = "block";
     isInRoom = true;
     if(pc){
@@ -314,6 +339,7 @@ socket.on('peerLeft', () => {
 socket.on('peerJoined', (data) => {  
     log("peer joined");
     joinedStatus.innerText = "guest: (" + data.peer.substr(0, 7) + ")"; 
+    refreshBtn.click();
 })
 
 
