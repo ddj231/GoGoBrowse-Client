@@ -2,13 +2,15 @@ html, body {
     margin: 0;
     height: 100%;
     width: 100%;
+    font-family: 'Courier New', Courier, monospace;
 }
 
 #statusBar {
     display: flex;
     flex: row;
     height: 20px;
-    background-color:rgb(255, 108, 29); 
+    /*background-color:rgb(255, 108, 29);*/
+    background-color: rgb(11, 66, 230);
     color: #fff;
     font-size: small;
     font-weight: 400;
@@ -33,9 +35,11 @@ html, body {
     flex: row;
     height: 50px;
     border-bottom: solid;
-    border-color: rgb(54, 99, 234);
+    /*border-color: rgb(54, 99, 234);*/
+    border-color: rgb(62,1,164);
     border-bottom-width: 1px;
-    background-color: rgb(11, 66, 230);
+    /*background-color: rgb(11, 66, 230);*/
+    background-color: rgb(62,1,164);
 }
 .navBtn {
     height: 30px;
@@ -47,14 +51,16 @@ html, body {
     font-weight: 800;
     border-style: hidden;
     /*background-color: rgb(54, 99, 234);*/
-    background-color: rgb(11, 66, 230);
+    /*background-color: rgb(11, 66, 230);*/
+    background-color: rgb(62,1,164);
     color: #fff;
     font-family: 'Courier New', Courier, monospace;
 }
 
 .navBtn:hover {
     /*background-color: rgb(47, 86, 206);*/
-    background-color: rgb(10, 57, 200, 0.5);
+    /*background-color: rgb(10, 57, 200, 0.5);*/
+    background-color: rgb(49, 1, 133, 0.5);
 }
 
 #enterBtn {
@@ -126,7 +132,7 @@ html, body {
     flex: 1;
     padding-left: 10px;
     border: 0;
-    color:rgb(255, 108, 29);
+    color:rgb(255, 150, 93);
     font-family: 'Courier New', Courier, monospace;
     overflow: scroll;
 }
@@ -146,7 +152,8 @@ html, body {
     border: 0;
     font-weight: 600;
     /*background-color: rgb(54, 99, 234);*/
-    background-color: rgb(11, 66, 230);
+    /*background-color: rgb(11, 66, 230);*/
+    background-color: rgb(62,1,164);
     color: #fff;
     font-family: 'Courier New', Courier, monospace;
 }
@@ -154,7 +161,8 @@ html, body {
 
 .liveBtn:hover {
     /*background-color: rgb(6, 57, 211);*/
-    background-color: rgb(10, 57, 200, 0.5);
+    /*background-color: rgb(10, 57, 200, 0.5);*/
+    background-color: rgb(49, 1, 133, 0.5);
 }
 
 .leaveBtn {
@@ -169,7 +177,7 @@ html, body {
 }
 
 .leaveBtn:hover {
-    background-color: #ce0a0a;
+    background-color: #eb0000;
 }
 
 #error {
@@ -178,6 +186,7 @@ html, body {
     font-family: 'Courier New', Courier, monospace;
     color: #000;
     text-align: center;
+    display: none;
 }
 #micBtn {
     font-size: medium;

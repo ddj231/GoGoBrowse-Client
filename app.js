@@ -139,8 +139,8 @@ function LeaveRoom(){
     }
     log("peer left");
     isInRoom = false;
-    joinedStatus.innerText = "guest: none";
-    leadingStatus.innerText = "leader: none";
+    joinedStatus.innerText = "Guest: none";
+    leadingStatus.innerText = "Leader: none";
     leaveBtn.style.display = "none";
     roomSyncedStatus.innerText = "";
     roomInput.value = "";
@@ -214,7 +214,7 @@ socket.on('join', (data)=>{
     log("did join room:");
     log(data.didJoin);
     if(!data.didJoin){
-        roomSyncedStatus.innerText = "could not join room";
+        roomSyncedStatus.innerText = "Could not join room";
         return;
     }
     leaveBtn.style.display = "block";
@@ -223,8 +223,8 @@ socket.on('join', (data)=>{
         pc.close();
     }
     pc = new RTCPeerConnection(servers);
-    joinedStatus.innerText = "guest: me(" + data.me.substr(0, 7) +")"; 
-    leadingStatus.innerText = "leader: (" + data.leader.substr(0, 7) + ")";
+    joinedStatus.innerText = "Guest: me(" + data.me.substr(0, 7) +")"; 
+    leadingStatus.innerText = "Leader: (" + data.leader.substr(0, 7) + ")";
     StartStreamingData(pc, ()=>{
         let callID = data.roomId;
         pc.onicecandidate = (event)=>{
@@ -268,7 +268,7 @@ socket.on('new', (data)=>{
     if(!data.didCreate){
         return;
     }
-    roomSyncedStatus.innerText = "room created";
+    roomSyncedStatus.innerText = "Room created";
     leaveBtn.style.display = "block";
     isInRoom = true;
     if(pc){
@@ -317,8 +317,8 @@ socket.on('new', (data)=>{
             })
         });
     })
-    leadingStatus.innerText = "leader: me(" + data.me.substr(0,7) +")"; 
-    joinedStatus.innerText = "guest: none"; 
+    leadingStatus.innerText = "Leader: me(" + data.me.substr(0,7) +")"; 
+    joinedStatus.innerText = "Guest: none"; 
     let callID = data.roomId;
 });
 
@@ -354,10 +354,10 @@ CheckIsRoomSynced();
 
 socket.on('isRoomSynced', (isSynced) => {
     if(isSynced){
-        roomSyncedStatus.innerText = "room is synced";
+        roomSyncedStatus.innerText = "Room is synced";
     }
     else {
-        roomSyncedStatus.innerText = "room is not synced";
+        roomSyncedStatus.innerText = "Room is not synced";
     }
 });
 
