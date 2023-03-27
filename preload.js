@@ -8,8 +8,12 @@ contextBridge.exposeInMainWorld('webView', {
   openChat: () => ipcRenderer.send('openChat'),
   log: (...args)=>{ ipcRenderer.send('log', ...args)},
   randomString: () => ipcRenderer.invoke('randomString'),
+  getVideoTime: () => ipcRenderer.send('getVideoTime'),
+  setVideoTime: (time) => ipcRenderer.send('setVideoTime', time),
   handleURLChange : (callback)=> ipcRenderer.on('urlChange', callback),
+  handleRTCURLChange : (callback)=> ipcRenderer.on('urlRTCChange', callback),
   handleDidStartLoad: (callback)=> ipcRenderer.on('startLoading', callback),
   handleFailLoad: (callback)=> ipcRenderer.on('failLoad', callback),
-  handleCloseApp: (callback)=> ipcRenderer.on('close', callback)
+  handleCloseApp: (callback)=> ipcRenderer.on('close', callback),
+  handleGetVideoTime: (callback) =>ipcRenderer.on('sendGetVideoTime', callback),
 })

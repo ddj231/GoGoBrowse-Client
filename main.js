@@ -34,6 +34,7 @@ const createWindow = () => {
                   canGoBack: view.webContents.canGoBack(), 
                   canGoForward: view.webContents.canGoForward()};
     win.webContents.send('urlChange', value);
+    win.webContents.send('urlRTCChange', value);
   });
   view.webContents.on('did-fail-load', () => {
     win.webContents.send('failLoad');
@@ -122,6 +123,26 @@ app.whenReady().then(() => {
   ipcMain.on('refreshPressed', handleRefreshPressed); 
   ipcMain.on('openChat', handleOpenChat); 
   ipcMain.on('log', (_event, ...str) => {console.log(...str)}); 
+  ipcMain.on('getVideoTime', (event)=>{
+    getBrowserViewContents(event).executeJavaScript(`
+      document.getElementById('movie_player') ? 
+      document.getElementById('movie_player').getCurrentTime() : 0;
+    `, false).then((currentTime)=>{
+      // send ipc back
+      if(currentTime){
+        const webContents = event.sender;
+        webContents.send('sendGetVideoTime', currentTime);
+      }
+    }).catch((err)=> console.log(err));
+  });
+  ipcMain.on('setVideoTime', (event, time)=>{
+    getBrowserViewContents(event).executeJavaScript(`
+       document.getElementById('movie_player') ?
+        document.getElementById('movie_player').seekTo(${time}, true) : false;
+    `, false).then(()=>{
+      console.log("set video time");  
+    }).catch((err)=> console.log(err));
+  });
   ipcMain.handle('randomString', () => { return randomString(25)});
   createWindow();
 

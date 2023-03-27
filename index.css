@@ -23,7 +23,7 @@ html, body {
 }
 
 .roomSync {
-    flex: 1;
+    flex: 2;
     align-self: flex-end;
     margin-left: 5px;
     justify-content: flex-end;
@@ -174,6 +174,22 @@ html, body {
     color:#fff;
     font-family: 'Courier New', Courier, monospace;
     flex: 1;
+}
+
+.syncBtn{
+    width: 40px; 
+    font-size: x-small;
+    border: 0;
+    font-weight: 600;
+    display: none;
+    background-color:rgb(255, 108, 29);
+    color:#fff;
+    font-family: 'Courier New', Courier, monospace;
+    flex: 1;
+}
+
+.syncBtn:hover {
+    background-color:rgb(231, 99, 29);
 }
 
 .leaveBtn:hover {

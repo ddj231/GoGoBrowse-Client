@@ -28,6 +28,7 @@ const servers = {
 };
 
 let pc = null;
+let datachannel = null;
 
 let localStream = null;
 let remoteStream = null;
@@ -79,16 +80,17 @@ fwdBtn.addEventListener('click', () =>{
 
 refreshBtn.addEventListener('click', () =>{
     window.webView.refresh();
+    inputBar.value = current_url;
     socket.emit('url', current_url);
 })
 
 window.webView.handleURLChange((_, value) => {
-    inputBar.value = value.url;
     spinner.style.display = 'none';
     inputBar.blur();
     // only send updates when url changes (helps prevent unneccessary sends
     // that can make the friend url glitchy)
     if(current_url != value.url){
+      inputBar.value = value.url;
       current_url = value.url;
       socket.emit('url', value.url);
     }
@@ -128,6 +130,7 @@ const joinedStatus = document.getElementById("joinedStatus");
 const roomSyncedStatus = document.getElementById("roomSyncedStatus");
 const leaveBtn = document.querySelector("#leaveBtn");
 leaveBtn.style.display = "none";
+const syncBtn = document.querySelector("#syncBtn");
 
 joinBtn.addEventListener('click', ()=>{
     socket.emit('join', roomInput.value);
@@ -142,12 +145,22 @@ function LeaveRoom(){
     joinedStatus.innerText = "Guest: none";
     leadingStatus.innerText = "Leader: none";
     leaveBtn.style.display = "none";
+    syncBtn.style.display = "none";
     roomSyncedStatus.innerText = "";
     roomInput.value = "";
 }
 
 window.webView.handleCloseApp((_, value) => {
     socket.emit('leaveCurrentRoom');
+});
+
+window.webView.handleGetVideoTime((_, currentTime) => {
+    log("current video time is: ", currentTime);
+    socket.emit("videoTime", currentTime)
+});
+
+socket.on('videoSync', (time) => {
+    window.webView.setVideoTime(time);
 });
 
 function StartStreamingData(pc, doAction){
@@ -195,7 +208,10 @@ micBtn.addEventListener('click', () =>{
     }
 });
 
-
+syncBtn.addEventListener('click', ()=>{
+    log("sync clicked");
+    window.webView.getVideoTime();
+})
 
 newBtn.addEventListener('click', ()=>{
     log("new clicked");
@@ -223,6 +239,15 @@ socket.on('join', (data)=>{
         pc.close();
     }
     pc = new RTCPeerConnection(servers);
+    pc.ondatachannel = (event) => {
+        log("data channel open");
+        const datachannel = event.channel;
+        datachannel.onmessage = (incoming) =>{
+            const msg = incoming.data;
+            console.log(msg);
+            log("the url message is: ", msg);
+        };
+    };
     joinedStatus.innerText = "Guest: me(" + data.me.substr(0, 7) +")"; 
     leadingStatus.innerText = "Leader: (" + data.leader.substr(0, 7) + ")";
     StartStreamingData(pc, ()=>{
@@ -262,6 +287,7 @@ socket.on('join', (data)=>{
     });
 });
 
+
 socket.on('new', (data)=>{
     log("did create room:");
     log(data.didCreate);
@@ -270,11 +296,23 @@ socket.on('new', (data)=>{
     }
     roomSyncedStatus.innerText = "Room created";
     leaveBtn.style.display = "block";
+    syncBtn.style.display = "block";
     isInRoom = true;
     if(pc){
         pc.close();
     }
     pc = new RTCPeerConnection(servers);
+    datachannel = pc.createDataChannel("urlChannel");
+
+    datachannel.onopen = ()=>{
+        log("data channel open");
+        window.webView.handleRTCURLChange((_, value) => {
+            log("rtc url");
+            datachannel.send(value.url);
+            // only send updates when url changes (helps prevent unneccessary sends
+            // that can make the friend url glitchy)
+        });
+    };
     StartStreamingData(pc, ()=> {
         pc.onicecandidate = (event)=>{
             if(event.candidate){
@@ -338,7 +376,7 @@ socket.on('peerLeft', () => {
 
 socket.on('peerJoined', (data) => {  
     log("peer joined");
-    joinedStatus.innerText = "guest: (" + data.peer.substr(0, 7) + ")"; 
+    joinedStatus.innerText = "Guest: (" + data.peer.substr(0, 7) + ")"; 
     refreshBtn.click();
 })
 
