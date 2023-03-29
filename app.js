@@ -17,8 +17,6 @@ inputBar.addEventListener('focus', () => {
     })
 });
 
-// Web RTC code
-//====================================================================================
 const servers = {
   iceServers:[
     {
@@ -30,7 +28,7 @@ const servers = {
 
 let pc = null;
 let dataChannel = null;
-let receiverDataChannel = null;
+let timestampChannel  = null;
 
 let localStream = null;
 let remoteStream = null;
@@ -44,7 +42,6 @@ navigator.mediaDevices
 
 let myAudio = document.getElementById("myAudio");
 let friendAudio = document.getElementById("friendAudio");
-//====================================================================================
 
 document.addEventListener('keyup', (event) => {
     if(event.code == 'Enter') {
@@ -70,7 +67,14 @@ spinner.style.display = 'none';
 const error = document.querySelector("#error");
 error.style.display = 'none';
 
-
+function CheckLoad(){
+    if(peerUrl == current_url){
+        roomSyncedStatus.innerText = "Room is synced";
+    }
+    else {
+        roomSyncedStatus.innerText = "Room is not synced";
+    }
+}
 
 backBtn.addEventListener('click', () =>{
     window.webView.goBack();
@@ -96,13 +100,12 @@ window.webView.handleURLChange((_, value) => {
     // only send updates when url changes (helps prevent unneccessary sends
     // that can make the friend url glitchy)
     if(current_url != value.url){
-      if(dataChannel) {
+      if(pc && dataChannel) {
         log("sending url");
         dataChannel.send(value.url);
       }
       inputBar.value = value.url;
       current_url = value.url;
-      // socket.emit('url', value.url);
     }
 
     if(pc && peerUrl == current_url){
@@ -134,6 +137,10 @@ window.webView.handleURLChange((_, value) => {
 window.webView.handleDidStartLoad(() => {
     spinner.style.display = 'block';
     error.style.display = 'none';
+    // if in a connection check load
+    if(pc){
+        CheckLoad();
+    }
 });
 
 window.webView.handleFailLoad(() => {
@@ -160,11 +167,9 @@ function LeaveRoom(){
         if(dataChannel){
             dataChannel.close();
         }
-        if(receiverDataChannel){
-            receiverDataChannel.close();
-        }
+        pc = null;
         dataChannel = null;
-        receiverDataChannel = null;
+        timestampChannel = null;
     }
     log("peer left");
     isInRoom = false;
@@ -182,11 +187,10 @@ window.webView.handleCloseApp((_, value) => {
 
 window.webView.handleGetVideoTime((_, currentTime) => {
     log("current video time is: ", currentTime);
-    socket.emit("videoTime", currentTime)
-});
-
-socket.on('videoSync', (time) => {
-    window.webView.setVideoTime(time);
+    if(timestampChannel){
+        log("timestamp channel not null");
+        timestampChannel.send(JSON.stringify(currentTime));
+    }
 });
 
 function StartStreamingData(pc, doAction){
@@ -247,10 +251,6 @@ newBtn.addEventListener('click', ()=>{
     })
 });
 
-socket.on('url', (url)=>{
-    //window.webView.changeUrl(url);
-});
-
 socket.on('join', (data)=>{
     log("did join room:");
     log(data.didJoin);
@@ -270,13 +270,25 @@ socket.on('join', (data)=>{
     pc = new RTCPeerConnection(servers);
     pc.ondatachannel = (event) => {
         log("data channel open");
-        dataChannel = event.channel;
-        dataChannel.onmessage = (incoming) =>{
-            const msg = incoming.data;
-            log("the url message is: ", msg);
-            peerUrl = msg;
-            window.webView.changeUrl(msg);
-        };
+        if(event.channel.label == "urlChannel"){
+            dataChannel = event.channel;
+            dataChannel.onopen = () => {
+                refreshBtn.click();
+            };
+            dataChannel.onmessage = (incoming) =>{
+                const msg = incoming.data;
+                log("the url message is: ", msg);
+                peerUrl = msg;
+                window.webView.changeUrl(msg);
+            };
+        }
+        else {
+            timestampChannel = event.channel;
+            timestampChannel.onmessage = (incoming)=> {
+                const msg = incoming.data;
+                window.webView.setVideoTime(JSON.parse(msg));
+            }
+        }
     };
 
     joinedStatus.innerText = "Guest: me(" + data.me.substr(0, 7) +")"; 
@@ -338,24 +350,7 @@ socket.on('new', (data)=>{
     }
     pc = new RTCPeerConnection(servers);
     dataChannel = pc.createDataChannel("urlChannel");
-
-    /*
-    pc.ondatachannel = (event) => {
-        log("data channel open");
-        dataChannel = event.channel;
-        dataChannel.onmessage = (incoming) =>{
-            const msg = incoming.data;
-            peerUrl = msg;
-            log("leader got url", msg);
-            if(peerUrl == current_url){
-                roomSyncedStatus.innerText = "Room is synced";
-            }
-            else {
-                roomSyncedStatus.innerText = "Room is not synced";
-            }
-        };
-    };
-    */
+    timestampChannel = pc.createDataChannel("timestampChannel");
 
     StartStreamingData(pc, ()=> {
         pc.onicecandidate = (event)=>{
@@ -436,26 +431,9 @@ socket.on('peerJoined', (data) => {
             }
         }
     }
+    if(timestampChannel){
+        timestampChannel.onopen = ()=>{
+            log("timestamp channel open");
+        }
+    }
 })
-
-
-/*
-function CheckIsRoomSynced(){
-    if(isInRoom){
-        socket.emit('isRoomSynced', current_url);
-    }
-    setTimeout(CheckIsRoomSynced, 1000);
-}
-
-CheckIsRoomSynced();
-
-socket.on('isRoomSynced', (isSynced) => {
-    if(isSynced){
-        roomSyncedStatus.innerText = "Room is synced";
-    }
-    else {
-        roomSyncedStatus.innerText = "Room is not synced";
-    }
-});
-*/
-
