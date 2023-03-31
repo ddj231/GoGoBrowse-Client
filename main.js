@@ -43,10 +43,10 @@ const createWindow = () => {
     view.setBounds({ x: 0, y: 25, width: win.getSize()[0], height: win.getSize()[1] - 23});
   });
   view.webContents.on('leave-html-full-screen', () => {
-    view.setBounds({ x: 0, y: 99, width: win.getSize()[0], height: win.getSize()[1]- 70});
+    view.setBounds({ x: 0, y: 94, width: win.getSize()[0], height: win.getSize()[1]- 70});
   });
   win.setBrowserView(view);
-  view.setBounds({ x: 0, y: 99, width: 800, height: win.getSize()[1]- 70/*600 - 99*/});
+  view.setBounds({ x: 0, y: 98, width: 800, height: win.getSize()[1]- 70/*600 - 99*/});
   view.setAutoResize({width: true, height: true});
   view.webContents.setWindowOpenHandler(({url}) => {
     console.log("stopping window open");
@@ -142,12 +142,32 @@ app.whenReady().then(() => {
         }
       }).catch((err)=> console.log(err));
     });
+    ipcMain.on('getVideoTime', (event)=>{
+      getBrowserViewContents(event).executeJavaScript(`
+        window.netflix ? window.netflix.appContext.state.playerApp.getAPI().videoPlayer : 0;
+      `, false).then((player)=>{
+        // send ipc back
+        if(player){
+          const webContents = event.sender;
+          webContents.send('sendGetVideoTime', player.getCurrentTime());
+        }
+      }).catch((err)=> console.log(err));
+    });
     ipcMain.on('setVideoTime', (event, time)=>{
       getBrowserViewContents(event).executeJavaScript(`
         document.getElementById('movie_player') ?
           document.getElementById('movie_player').seekTo(${time}, true) : false;
       `, false).then(()=>{
         console.log("set video time");  
+      }).catch((err)=> console.log(err));
+    });
+    ipcMain.on('setVideoTime', (event, time)=>{
+      getBrowserViewContents(event).executeJavaScript(`
+        window.netflix ? window.netflix.appContext.state.playerApp.getAPI().videoPlayer : 0;
+      `, false).then((player)=>{
+        if(player){
+          player.seek(time);
+        }
       }).catch((err)=> console.log(err));
     });
     ipcMain.handle('randomString', () => { return randomString(25)});
