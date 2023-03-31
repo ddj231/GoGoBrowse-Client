@@ -1,5 +1,5 @@
 {
-  "name": "social-browser",
+  "name": "GoGobrowse",
   "version": "1.0.0",
   "description": "",
   "main": "main.js",
@@ -9,10 +9,10 @@
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "electron": "^23.1.0"
-  },
   "dependencies": {
     "socket.io": "^4.6.1"
+  },
+  "devDependencies": {
+    "electron": "github:castlabs/electron-releases#v23.2.0+wvcus"
   }
 }

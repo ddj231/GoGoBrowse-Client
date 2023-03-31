@@ -1,5 +1,5 @@
 const { randomInt } = require('crypto');
-const { app, BrowserView, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserView, BrowserWindow, ipcMain, components } = require('electron');
 const path = require('path')
 
 let current_url = "";
@@ -39,8 +39,14 @@ const createWindow = () => {
   view.webContents.on('did-fail-load', () => {
     win.webContents.send('failLoad');
   });
+  view.webContents.on('enter-html-full-screen', () => {
+    view.setBounds({ x: 0, y: 25, width: win.getSize()[0], height: win.getSize()[1] - 23});
+  });
+  view.webContents.on('leave-html-full-screen', () => {
+    view.setBounds({ x: 0, y: 99, width: win.getSize()[0], height: win.getSize()[1]- 70});
+  });
   win.setBrowserView(view);
-  view.setBounds({ x: 0, y: 99, width: 800, height: 600 - 99});
+  view.setBounds({ x: 0, y: 99, width: 800, height: win.getSize()[1]- 70/*600 - 99*/});
   view.setAutoResize({width: true, height: true});
   view.webContents.setWindowOpenHandler(({url}) => {
     console.log("stopping window open");
@@ -117,39 +123,42 @@ function randomString(len){
 }
 
 app.whenReady().then(() => {
-  ipcMain.on('changeUrl', handleChangeUrl);
-  ipcMain.on('backPressed', handleBackPressed); 
-  ipcMain.on('forwardPressed', handleForwardPressed); 
-  ipcMain.on('refreshPressed', handleRefreshPressed); 
-  ipcMain.on('openChat', handleOpenChat); 
-  ipcMain.on('log', (_event, ...str) => {console.log(...str)}); 
-  ipcMain.on('getVideoTime', (event)=>{
-    getBrowserViewContents(event).executeJavaScript(`
-      document.getElementById('movie_player') ? 
-      document.getElementById('movie_player').getCurrentTime() : 0;
-    `, false).then((currentTime)=>{
-      // send ipc back
-      if(currentTime){
-        const webContents = event.sender;
-        webContents.send('sendGetVideoTime', currentTime);
-      }
-    }).catch((err)=> console.log(err));
-  });
-  ipcMain.on('setVideoTime', (event, time)=>{
-    getBrowserViewContents(event).executeJavaScript(`
-       document.getElementById('movie_player') ?
-        document.getElementById('movie_player').seekTo(${time}, true) : false;
-    `, false).then(()=>{
-      console.log("set video time");  
-    }).catch((err)=> console.log(err));
-  });
-  ipcMain.handle('randomString', () => { return randomString(25)});
-  createWindow();
+  components.whenReady().then(() => {
+    ipcMain.on('changeUrl', handleChangeUrl);
+    ipcMain.on('backPressed', handleBackPressed); 
+    ipcMain.on('forwardPressed', handleForwardPressed); 
+    ipcMain.on('refreshPressed', handleRefreshPressed); 
+    ipcMain.on('openChat', handleOpenChat); 
+    ipcMain.on('log', (_event, ...str) => {console.log(...str)}); 
+    ipcMain.on('getVideoTime', (event)=>{
+      getBrowserViewContents(event).executeJavaScript(`
+        document.getElementById('movie_player') ? 
+        document.getElementById('movie_player').getCurrentTime() : 0;
+      `, false).then((currentTime)=>{
+        // send ipc back
+        if(currentTime){
+          const webContents = event.sender;
+          webContents.send('sendGetVideoTime', currentTime);
+        }
+      }).catch((err)=> console.log(err));
+    });
+    ipcMain.on('setVideoTime', (event, time)=>{
+      getBrowserViewContents(event).executeJavaScript(`
+        document.getElementById('movie_player') ?
+          document.getElementById('movie_player').seekTo(${time}, true) : false;
+      `, false).then(()=>{
+        console.log("set video time");  
+      }).catch((err)=> console.log(err));
+    });
+    ipcMain.handle('randomString', () => { return randomString(25)});
+    createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+
   });
 });
 
