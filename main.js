@@ -46,7 +46,7 @@ const createWindow = () => {
     view.setBounds({ x: 0, y: 94, width: win.getSize()[0], height: win.getSize()[1]- 70});
   });
   win.setBrowserView(view);
-  view.setBounds({ x: 0, y: 98, width: 800, height: win.getSize()[1]- 70/*600 - 99*/});
+  view.setBounds({ x: 0, y: 98, width: win.getSize()[0], height: 502 /*600 - 99*/});
   view.setAutoResize({width: true, height: true});
   view.webContents.setWindowOpenHandler(({url}) => {
     console.log("stopping window open");

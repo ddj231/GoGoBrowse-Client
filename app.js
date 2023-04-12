@@ -2,7 +2,7 @@ const log = window.webView.log;
 let follow = false;
 let isInRoom = false;
 
-const socket = io("http://localhost:3000");
+const socket = io("https://gogobrowse-server.onrender.com", {secure: true});
 
 let peerUrl = "";
 let current_url = "https://www.google.com";
@@ -255,7 +255,7 @@ socket.on('join', (data)=>{
     log("did join room:");
     log(data.didJoin);
     if(!data.didJoin){
-        roomSyncedStatus.innerText = "Could not join room";
+        roomSyncedStatus.innerText = "Could not join";
         return;
     }
     leaveBtn.style.display = "block";
@@ -335,6 +335,7 @@ socket.on('new', (data)=>{
     log("did create room:");
     log(data.didCreate);
     if(!data.didCreate){
+        roomSyncedStatus.innerText = "Failed Create"
         return;
     }
     roomSyncedStatus.innerText = "Room created";
