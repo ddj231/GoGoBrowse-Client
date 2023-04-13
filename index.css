@@ -10,7 +10,7 @@ html, body {
     flex: row;
     height: 20px;
     /*background-color:rgb(255, 108, 29);*/
-    background-color: rgb(11, 66, 230);
+    background-color: #0b42e6;
     color: #fff;
     font-size: small;
     font-weight: 400;
@@ -20,14 +20,23 @@ html, body {
     flex: 2;
     align-self: flex-end;
     margin-left: 5px;
+    text-overflow: ellipsis
+}
+
+.statusItemLG {
+    flex: 3;
+    align-self: flex-end;
+    margin-left: 5px;
+    text-overflow: ellipsis
 }
 
 .roomSync {
-    flex: 2;
+    flex: 3;
     align-self: flex-end;
     margin-left: 5px;
     justify-content: flex-end;
     color:rgb(255, 255, 255);
+    text-overflow: ellipsis
 }
 
 #navBar {
@@ -132,7 +141,7 @@ html, body {
     flex: 1;
     padding-left: 10px;
     border: 0;
-    color:rgb(255, 150, 93);
+    color:#ff965d;
     font-family: 'Courier New', Courier, monospace;
     overflow: scroll;
 }

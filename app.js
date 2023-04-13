@@ -1,7 +1,7 @@
 const log = window.webView.log;
 let follow = false;
-let isInRoom = false;
 
+//const socket = io("https://gogobrowse-server.onrender.com", {secure: true});
 const socket = io("http://localhost:3000");
 
 let peerUrl = "";
@@ -42,6 +42,368 @@ navigator.mediaDevices
 
 let myAudio = document.getElementById("myAudio");
 let friendAudio = document.getElementById("friendAudio");
+
+class RoomState {
+    constructor(){
+        this.peerConnections = {};
+        this.dataChannels = {};
+        this.timestampChannels = {};
+        this.currentRoomId = null;
+        this.leader = "";
+        this.guests = [];
+    }
+
+    RemoveSocketListeners(){
+        socket.off('offer');
+        socket.off('offerCandidates');
+        socket.off('answer');
+        socket.off('answerCandidates');
+    }
+
+    CloseAll(refreshMeta){
+        for(let key in this.peerConnections){
+            this.peerConnections[key].close();
+            delete this.peerConnections[key];
+        }
+        for(let key in this.dataChannels){
+            this.dataChannels[key].close();
+            delete this.dataChannels[key];
+        }
+        for(let key in this.timestampChannels){
+            this.timestampChannels[key].close();
+            delete this.timestampChannels[key];
+        }
+        log("calling close all")
+        if(refreshMeta){
+            this.leader = "";
+            this.guests = [];
+        }
+    }
+
+    SetLeader(leader){
+        this.leader = leader;
+    }
+
+    AddGuest(guest){
+        this.guests.push(guest);
+    }
+    DataChannelSendAll(url){
+        for(const key in currentRoomManager.dataChannels){
+            let dataChannel = currentRoomManager.dataChannels[key];
+            if(dataChannel) {
+                log("refresh clicked");
+                dataChannel.send(url);
+            }
+        }
+    }
+    TimestampChannelSendAll(jsonData){
+        for(const key in currentRoomManager.timestampChannels){
+            let timestampChannel = currentRoomManager.timestampChannels[key];
+            if(timestampChannel) {
+                log("refresh clicked");
+                timestampChannel.send(jsonData);
+            }
+        }
+    }
+    GenerateLeaderText(){
+        let output = "Leader: ";
+        if(this.leader == socket.id){
+            output += "Me(" + this.leader.substring(0, 7) + ")";
+        }
+        else {
+            output += "(" + this.leader.substring(0, 7) + ")";
+        }
+        return output;
+    }
+
+    GenerateGuestText(){
+        let output = "Joined: ";
+        for(let socketID of this.guests){
+            if(socketID == socket.id){
+                output += "Me(" + socketID.substring(0, 7) + ")";
+            }
+            else {
+                output += "(" + socketID.substring(0, 7) + ")";
+            }
+        }
+        return output;
+    }
+
+    // close all current peer connections and listen for offer candidates
+    // and answer candidates
+    NewRoom(){
+        this.CloseAll();
+
+        socket.on('offerCandidates', (offerCandidates) => {
+            for(let data of offerCandidates){
+                if(data.toSocket != socket.id){
+                    continue;
+                }
+                let pc = this.GetPeerConnection(data.fromSocket);
+                if(!pc){
+                    log("no connection to add offer candidate to");
+                }
+                log("adding offer candidate");
+                const candidate = new RTCIceCandidate(data.cand);
+                pc.addIceCandidate(candidate);
+            }
+        });
+
+        socket.on('answerCandidates', (answerCandidates) => {
+            for(let data of answerCandidates){
+                if(data.toSocket != socket.id){
+                    continue;
+                }
+                let pc = this.GetPeerConnection(data.fromSocket);
+                if(!pc){
+                    log("no connection to add offer candidate to");
+                }
+                log("adding answer candidate");
+                const candidate = new RTCIceCandidate(data.cand);
+                pc.addIceCandidate(candidate);
+            }
+        });
+    }
+
+    AddPeerConnection(socketID){
+        log("adding peer connection");
+        log(socketID);
+        this.peerConnections[socketID] =  new RTCPeerConnection(servers);
+    }
+
+    RemovePeerConnection(socketID){
+        // close peer connection and delete
+        this.peerConnections[socketID].close();
+        delete this.peerConnections[socketID];
+    }
+
+    GetPeerConnection(socketID){
+        return this.peerConnections[socketID];
+    }
+
+    SendCallOfferAndCandidates(socketID, callID){
+        log("socket ID: ");
+        log(socketID);
+        const pc = this.GetPeerConnection(socketID);
+        if(!pc){
+            log("no peer connection found for socketID: ");
+            log(socketID);
+            return;
+        }
+        this.dataChannels[socketID] = pc.createDataChannel("urlChannel");
+        this.timestampChannels[socketID] = pc.createDataChannel("timestampChannel");
+        this.dataChannels[socketID].onopen = ()=>{
+        }
+        this.dataChannels[socketID].onmessage = (event)=>{
+            if(socketID == this.leader){
+                const msg = event.data;
+                log("the leader url message is: ", msg);
+                window.webView.changeUrl(msg);
+            }
+        }
+        this.timestampChannels[socketID].onmessage = (event)=>{
+            if(socketID == this.leader){
+                const msg = event.data;
+                window.webView.setVideoTime(JSON.parse(msg));
+            }
+        }
+
+        StartStreamingData(pc, ()=> {
+            pc.onicecandidate = (event)=>{
+                if(event.candidate){
+                    socket.emit('offerCandidates', {room: callID, 
+                                                    fromSocket: socket.id,
+                                                    toSocket: socketID,
+                                                    offerCandidate: event.candidate.toJSON()})
+                }
+            }
+
+            var mediaConstraints = {
+                'offerToReceiveAudio': true,
+                'offerToReceiveVideo': false 
+            };
+
+            // create offer
+            pc.createOffer(mediaConstraints).then((offerDesc) =>{
+                pc.setLocalDescription(offerDesc).then(() =>{
+                    const offer = {
+                        sdp: offerDesc.sdp,
+                        type: offerDesc.type
+                    }
+                    socket.emit('offer', {room: callID, 
+                                        fromSocket: socket.id,
+                                        toSocket: socketID, offer: offer});
+                    socket.on('answer', (answers) =>{
+                        for(let data of answers) {
+                            log(data);
+                            log(socketID);
+                            log(socket.id);
+                            if(data.fromSocket == socketID && data.toSocket == socket.id){
+                                if(!pc.currentRemoteDescription && data.answer){
+                                    const answerDesc = new RTCSessionDescription(data.answer);
+                                    pc.setRemoteDescription(answerDesc);
+                                    log("set Remote Desc");
+                                }
+                            }
+                        }
+                    });
+                })
+            });
+        })
+    }
+    HandleGettingOffer(pc, offers, socketID, callID){
+        let promise;
+        for(const data of offers){
+            log("looking for offer");
+            log("my from Socket");
+            log(socketID);
+            log("my to Socket");
+            log(socket.id);
+            if(data.fromSocket == socketID && data.toSocket == socket.id){
+                const offerDescription = data.offer;
+                log("setting offer description");
+                promise = pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
+            }
+        }
+        if(!promise){
+            log("error setting remote description for peer");
+            return;
+        }
+        promise.then(() => {
+            pc.createAnswer().then((answerDesc) => {
+                pc.setLocalDescription(answerDesc).then(()=>{
+                    const answer= {
+                        sdp: answerDesc.sdp,
+                        type: answerDesc.type
+                    }
+                    socket.emit('answer', 
+                                        {room: callID, 
+                                        fromSocket: socket.id,
+                                        toSocket: socketID, answer: answer });
+                })
+            });
+        });
+
+    }
+    AnswerCallAndSendCandidates(socketID, callID){
+        // add the user that just joined the room to the peer connections
+        log("answering call and sending answer");
+        log("socket id");
+        log(socket.id);
+        let pc = this.GetPeerConnection(socketID);
+        StartStreamingData(pc, ()=>{
+            pc.onicecandidate = (event)=>{
+                if(event.candidate){
+                    socket.emit('answerCandidates', {room: callID, 
+                                                    fromSocket: socket.id,
+                                                    toSocket: socketID,
+                                                answerCandidate: event.candidate.toJSON()})
+                }
+            }
+            socket.emit('getOffers');
+            socket.on('getOffers', (offers) => {
+                this.HandleGettingOffer(pc, offers, socketID, callID);
+             });
+            socket.on('offer', (offers) => {
+                this.HandleGettingOffer(pc, offers, socketID, callID);
+            });
+        });
+    }
+}
+// current peer connections. (global because the peers we are connected
+// to are the peers we are connected to regardless of what room we are in)
+let currentRoomManager = new RoomState();
+// The protocol for joining a meeting is:
+// 1. Get all the members of the room. An array of socket ids.
+// 2. Create a map of "current peer connections". 
+//      Mapped socket_id of the peer, to a new peer connection.
+// 3. Create an RTC offer for each peer. and send via socket io.
+// 4. Add the offer candidates behavior and send offer candidates per socket as well.
+// 5. Listen for answer candidates. If we get an answer for our socket id, update the
+// corresponding socket.
+function JoinMeetingRTC(leader){
+    currentRoomManager.NewRoom();
+    currentRoomManager.SetLeader(leader);
+    // get call data for the room this socket is now in
+    socket.emit('getCallData');
+    socket.on('getCallData', (callData) => {
+        const socketIDs = callData.members;
+        for(const socketID of socketIDs){
+            // create a peer connection for each socket in the room
+            if(socketID != socket.id){
+                currentRoomManager.AddPeerConnection(socketID);
+                currentRoomManager.SendCallOfferAndCandidates(socketID, callData.roomID);
+                joinedStatus.innerText = currentRoomManager.GenerateGuestText(); 
+            }
+        }
+        leadingStatus.innerText = currentRoomManager.GenerateLeaderText();
+    });
+}
+
+// The protocol for creating a new rtc meeting.
+// 1. Clear all existing peer connections
+// 2. Listen for offer candidates and answer candidates
+function NewMeetingRTC(){
+    currentRoomManager.NewRoom();
+}
+
+// The protocol for connection with joiners of a meeting.
+// 1. Listen with socket id for emitted offers and answers. 
+//      If we get an offer from a user not in our current peer connections map,
+//      create a new peer connection and add to map.
+// 2. Add offer to the created peer connection. And send answer.
+// 3. Add offer candidates to the created peer connections.
+// 4. Otherwise listen for offer candidates. If they are for our socket update the 
+//      corresponding peer connection.
+// 5. Send out answer candidates for each peer.
+function ConnectWithJoiner(socketID, callID){
+    currentRoomManager.AddGuest(socketID);
+    currentRoomManager.AddPeerConnection(socketID);
+    currentRoomManager.AnswerCallAndSendCandidates(socketID, callID);
+    let dataChannel = currentRoomManager.dataChannels[socketID];
+    let timestampChannel = currentRoomManager.timestampChannels[socketID];
+    if(dataChannel) {
+        dataChannel.onmessage = (event)=>{
+        }
+    }
+    if(timestampChannel){
+        timestampChannel.onopen = ()=>{
+            log("timestamp channel open");
+        }
+    }
+    currentRoomManager.GetPeerConnection(socketID)
+    .ondatachannel = (event) => {
+        log("data channel open");
+        if(event.channel.label == "urlChannel"){
+            currentRoomManager.dataChannels[socketID]  = event.channel;
+            let dataChannel = event.channel;
+            dataChannel.onopen = () => {
+                refreshBtn.click();
+            };
+            dataChannel.onmessage = (incoming) =>{
+                log("got follower url", incoming.url);
+            };
+        }
+        else {
+            currentRoomManager.timestampChannels[socketID]  = event.channel;
+        }
+    };
+}
+
+// The protocol for leaving a room is:
+// 1. Close all current peer connections.
+function LeaveCurrentRoom(){
+    for(const socketID in currentRoomManager.peerConnections){
+        currentRoomManager.RemovePeerConnection(socketID);
+    }
+}
+
+// The protocol for updating a user leaving a room is:
+// 1. Listen for a user did leave 
+// 2. Close the peer connection of the user that left
+function PeerDidLeave(socketID){
+    currentRoomManager.RemovePeerConnection(socketID);
+}
 
 document.addEventListener('keyup', (event) => {
     if(event.code == 'Enter') {
@@ -88,10 +450,7 @@ refreshBtn.addEventListener('click', () =>{
     window.webView.refresh();
     inputBar.value = current_url;
     //socket.emit('url', current_url);
-    if(dataChannel) {
-        log("refresh clicked");
-        dataChannel.send(current_url);
-    }
+    currentRoomManager.DataChannelSendAll(current_url);
 })
 
 window.webView.handleURLChange((_, value) => {
@@ -100,20 +459,18 @@ window.webView.handleURLChange((_, value) => {
     // only send updates when url changes (helps prevent unneccessary sends
     // that can make the friend url glitchy)
     if(current_url != value.url){
-      if(pc && dataChannel) {
-        log("sending url");
-        dataChannel.send(value.url);
-      }
+      currentRoomManager.DataChannelSendAll(value.url);
       inputBar.value = value.url;
       current_url = value.url;
     }
-
+    /*
     if(pc && peerUrl == current_url){
         roomSyncedStatus.innerText = "Room is synced";
     }
     else if(pc){
         roomSyncedStatus.innerText = "Room is not synced";
     }
+    */
 
     if(!value.canGoBack) {
         backBtn.style.opacity = '0.5';
@@ -162,17 +519,9 @@ joinBtn.addEventListener('click', ()=>{
 });
 
 function LeaveRoom(){
-    if(pc){
-        pc.close();
-        if(dataChannel){
-            dataChannel.close();
-        }
-        pc = null;
-        dataChannel = null;
-        timestampChannel = null;
-    }
-    log("peer left");
-    isInRoom = false;
+    currentRoomManager.CloseAll(true /*refresh metadata*/);
+    currentRoomManager.RemoveSocketListeners();
+    currentRoomManager = new RoomState();
     joinedStatus.innerText = "Guest: none";
     leadingStatus.innerText = "Leader: none";
     leaveBtn.style.display = "none";
@@ -187,10 +536,7 @@ window.webView.handleCloseApp((_, value) => {
 
 window.webView.handleGetVideoTime((_, currentTime) => {
     log("current video time is: ", currentTime);
-    if(timestampChannel){
-        log("timestamp channel not null");
-        timestampChannel.send(JSON.stringify(currentTime));
-    }
+    currentRoomManager.TimestampChannelSendAll(JSON.stringify(currentTime));
 });
 
 function StartStreamingData(pc, doAction){
@@ -255,79 +601,16 @@ socket.on('join', (data)=>{
     log("did join room:");
     log(data.didJoin);
     if(!data.didJoin){
-        roomSyncedStatus.innerText = "Could not join room";
+        roomSyncedStatus.innerText = "Could not join";
         return;
     }
     leaveBtn.style.display = "block";
-    isInRoom = true;
-    if(pc){
-        pc.close();
-        if(dataChannel){
-            dataChannel.close();
+    for(const member of data.data.members){
+        if(member != data.leader){
+            currentRoomManager.AddGuest(member);
         }
-        dataChannel = null;
     }
-    pc = new RTCPeerConnection(servers);
-    pc.ondatachannel = (event) => {
-        log("data channel open");
-        if(event.channel.label == "urlChannel"){
-            dataChannel = event.channel;
-            dataChannel.onopen = () => {
-                refreshBtn.click();
-            };
-            dataChannel.onmessage = (incoming) =>{
-                const msg = incoming.data;
-                log("the url message is: ", msg);
-                peerUrl = msg;
-                window.webView.changeUrl(msg);
-            };
-        }
-        else {
-            timestampChannel = event.channel;
-            timestampChannel.onmessage = (incoming)=> {
-                const msg = incoming.data;
-                window.webView.setVideoTime(JSON.parse(msg));
-            }
-        }
-    };
-
-    joinedStatus.innerText = "Guest: me(" + data.me.substr(0, 7) +")"; 
-    leadingStatus.innerText = "Leader: (" + data.leader.substr(0, 7) + ")";
-    StartStreamingData(pc, ()=>{
-        let callID = data.roomId;
-        pc.onicecandidate = (event)=>{
-            if(event.candidate){
-                socket.emit('answerCandidates', {room: callID, 
-                                            answerCandidate: event.candidate.toJSON()})
-            }
-        }
-        socket.emit('getCallData');
-
-        socket.on('getCallData', (callData) => {
-            const offerDescription = callData.offers[0].offer;
-            log("offer description");
-            pc.setRemoteDescription(new RTCSessionDescription(offerDescription))
-            .then(() => {
-                pc.createAnswer().then((answerDesc) => {
-                    pc.setLocalDescription(answerDesc).then(()=>{
-                        const answer= {
-                            sdp: answerDesc.sdp,
-                            type: answerDesc.type
-                        }
-                        socket.emit('answer', {room: callID, answer: answer });
-                    })
-                    socket.on('offerCandidates', (data) => {
-                        log("getting offer candidates");
-                        for(let candData of data){
-                            log("offer candidate");
-                            const candidate = new RTCIceCandidate(candData.cand);
-                            pc.addIceCandidate(candidate);
-                        }
-                    });
-                });
-            });
-        });
-    });
+    JoinMeetingRTC(data.leader);
 });
 
 
@@ -335,68 +618,17 @@ socket.on('new', (data)=>{
     log("did create room:");
     log(data.didCreate);
     if(!data.didCreate){
+        roomSyncedStatus.innerText = "Failed Create"
         return;
     }
     roomSyncedStatus.innerText = "Room created";
     leaveBtn.style.display = "block";
     syncBtn.style.display = "block";
-    isInRoom = true;
-    if(pc){
-        pc.close();
-        if(dataChannel){
-            dataChannel.close();
-        }
-        dataChannel = null;
-    }
-    pc = new RTCPeerConnection(servers);
-    dataChannel = pc.createDataChannel("urlChannel");
-    timestampChannel = pc.createDataChannel("timestampChannel");
 
-    StartStreamingData(pc, ()=> {
-        pc.onicecandidate = (event)=>{
-            if(event.candidate){
-                socket.emit('offerCandidates', {room: callID, 
-                                            offerCandidate: event.candidate.toJSON()})
-            }
-        }
-
-        var mediaConstraints = {
-            'offerToReceiveAudio': true,
-            'offerToReceiveVideo': false 
-        };
-
-        // create offer
-        pc.createOffer(mediaConstraints).then((offerDesc) =>{
-            pc.setLocalDescription(offerDesc).then(() =>{
-                const offer = {
-                    sdp: offerDesc.sdp,
-                    type: offerDesc.type
-                }
-                socket.emit('offer', {room: callID, offer: offer});
-                socket.on('answer', (data) =>{
-                    for(const elem of data){
-                        if(!pc.currentRemoteDescription && elem.answer){
-                            const answerDesc = new RTCSessionDescription(elem.answer);
-                            pc.setRemoteDescription(answerDesc);
-                            log("set Remote Desc");
-                        }
-                    }
-                });
-
-                socket.on('answerCandidates', (data) => {
-                    log("getting answer candidates");
-                    for(let candData of data){
-                        log("answer candidate");
-                        const candidate = new RTCIceCandidate(candData.cand);
-                        pc.addIceCandidate(candidate);
-                    }
-                });
-            })
-        });
-    })
-    leadingStatus.innerText = "Leader: me(" + data.me.substr(0,7) +")"; 
+    currentRoomManager.SetLeader(socket.id);
+    NewMeetingRTC();
     joinedStatus.innerText = "Guest: none"; 
-    let callID = data.roomId;
+    leadingStatus.innerText = currentRoomManager.GenerateLeaderText();
 });
 
 
@@ -409,13 +641,13 @@ socket.on('leaveCurrentRoom', () => {
     LeaveRoom();
 });
 
-socket.on('peerLeft', () => {
+socket.on('peerLeft', (socketID) => {
     LeaveRoom();
 });
 
 socket.on('peerJoined', (data) => {  
     log("peer joined");
-    joinedStatus.innerText = "Guest: (" + data.peer.substr(0, 7) + ")"; 
+    /*
     if(dataChannel) {
         dataChannel.onopen = ()=>{
             refreshBtn.click();
@@ -436,4 +668,8 @@ socket.on('peerJoined', (data) => {
             log("timestamp channel open");
         }
     }
+    */
+    log("joiner id is: ", data.peer);
+    ConnectWithJoiner(data.peer, data.roomID);
+    joinedStatus.innerText = currentRoomManager.GenerateGuestText();
 })
