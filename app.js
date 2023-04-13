@@ -30,13 +30,13 @@ let pc = null;
 let dataChannel = null;
 let timestampChannel  = null;
 
-let localStream = null;
+let localStreams = [];
 let remoteStream = null;
 
 navigator.mediaDevices
 .getUserMedia({audio: true, video: false})
 .then((stream) => {
-    localStream = stream; 
+    localStreams.push(stream); 
 });
 
 
@@ -73,6 +73,12 @@ class RoomState {
             this.timestampChannels[key].close();
             delete this.timestampChannels[key];
         }
+        for(let elem of document.querySelectorAll("audio")) {
+            if(elem.classList.contains("PeerAudio")){
+                log("removing element");
+                elem.remove();
+            }
+        }
         log("calling close all")
         if(refreshMeta){
             this.leader = "";
@@ -90,8 +96,7 @@ class RoomState {
     DataChannelSendAll(url){
         for(const key in currentRoomManager.dataChannels){
             let dataChannel = currentRoomManager.dataChannels[key];
-            if(dataChannel) {
-                log("refresh clicked");
+            if(dataChannel && dataChannel.readyState == "open") {
                 dataChannel.send(url);
             }
         }
@@ -210,7 +215,7 @@ class RoomState {
             }
         }
 
-        StartStreamingData(pc, ()=> {
+        StartStreamingData(pc, socketID, ()=> {
             pc.onicecandidate = (event)=>{
                 if(event.candidate){
                     socket.emit('offerCandidates', {room: callID, 
@@ -293,7 +298,7 @@ class RoomState {
         log("socket id");
         log(socket.id);
         let pc = this.GetPeerConnection(socketID);
-        StartStreamingData(pc, ()=>{
+        StartStreamingData(pc, socketID, ()=>{
             pc.onicecandidate = (event)=>{
                 if(event.candidate){
                     socket.emit('answerCandidates', {room: callID, 
@@ -544,18 +549,24 @@ window.webView.handleGetVideoTime((_, currentTime) => {
     currentRoomManager.TimestampChannelSendAll(JSON.stringify(currentTime));
 });
 
-function StartStreamingData(pc, doAction){
+function StartStreamingData(pc, socketID, doAction){
     remoteStream = new MediaStream();
 
     navigator.mediaDevices
     .getUserMedia({audio: true, video: false})
     .then((stream) => {
-        localStream = stream; 
+        localStreams.push(stream); 
+        let localStream = stream;
         // push tracks from local stream to peer connection
         localStream.getTracks().forEach((track) => {
             pc.addTrack(track, localStream);
         });
-        friendAudio.srcObject = remoteStream;
+
+        let audio = document.createElement("audio");
+        audio.srcObject = remoteStream;
+        audio.classList.add("PeerAudio");
+        audio.classList.add(socketID);
+        document.body.appendChild(audio);
 
         pc.ontrack = (event) =>{
             event.streams[0].getTracks().forEach((track) => {
@@ -564,7 +575,9 @@ function StartStreamingData(pc, doAction){
         }
 
         if(micBtn.style.opacity == 0.5){
-            localStream.getTracks()[0].enabled = false;
+            for(const track of localStream.getTracks()){
+                track.enabled = false;
+            }
         }
 
         doAction();
@@ -576,14 +589,18 @@ function StartStreamingData(pc, doAction){
 
 const micBtn = document.getElementById("micBtn");
 micBtn.addEventListener('click', () =>{
-    if(localStream){
-        let enabled =localStream.getTracks()[0].enabled;
+    if(localStreams.length > 0){
+        let enabled =localStreams[0].getTracks()[0].enabled;
         if(enabled){
-            localStream.getTracks()[0].enabled = false;
+            for(let localStream of localStreams){
+                localStream.getAudioTracks()[0].enabled = false;
+            }
             micBtn.style.opacity = 0.5;
         }
         else {
-            localStream.getTracks()[0].enabled = true;
+            for(let localStream of localStreams){
+                localStream.getAudioTracks()[0].enabled = true;
+            }
             micBtn.style.opacity = 1.0;
         }
     }
