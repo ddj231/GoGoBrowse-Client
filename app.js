@@ -55,9 +55,9 @@ class RoomState {
 
     RemoveSocketListeners(){
         socket.off('offer');
-        socket.off('offerCandidates');
+        //socket.off('offerCandidates');
         socket.off('answer');
-        socket.off('answerCandidates');
+        //socket.off('answerCandidates');
     }
 
     CloseAll(refreshMeta){
@@ -142,6 +142,7 @@ class RoomState {
                 let pc = this.GetPeerConnection(data.fromSocket);
                 if(!pc){
                     log("no connection to add offer candidate to");
+                    continue;
                 }
                 log("adding offer candidate");
                 const candidate = new RTCIceCandidate(data.cand);
@@ -157,6 +158,7 @@ class RoomState {
                 let pc = this.GetPeerConnection(data.fromSocket);
                 if(!pc){
                     log("no connection to add offer candidate to");
+                    continue;
                 }
                 log("adding answer candidate");
                 const candidate = new RTCIceCandidate(data.cand);
@@ -375,9 +377,9 @@ function ConnectWithJoiner(socketID, callID){
     .ondatachannel = (event) => {
         log("data channel open");
         if(event.channel.label == "urlChannel"){
-            currentRoomManager.dataChannels[socketID]  = event.channel;
             let dataChannel = event.channel;
             dataChannel.onopen = () => {
+                currentRoomManager.dataChannels[socketID]  = event.channel;
                 refreshBtn.click();
             };
             dataChannel.onmessage = (incoming) =>{
@@ -385,7 +387,10 @@ function ConnectWithJoiner(socketID, callID){
             };
         }
         else {
-            currentRoomManager.timestampChannels[socketID]  = event.channel;
+            let timestampChannel = event.channel;
+            timestampChannel.onopen = () => {
+                currentRoomManager.timestampChannels[socketID]  = event.channel;
+            }
         }
     };
 }
