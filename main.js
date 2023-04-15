@@ -139,6 +139,10 @@ app.whenReady().then(() => {
         if(currentTime){
           const webContents = event.sender;
           webContents.send('sendGetVideoTime', currentTime);
+          getBrowserViewContents(event).executeJavaScript(`
+            document.getElementById('movie_player') ? 
+            document.getElementById('movie_player').playVideo() : 0;
+          `);
         }
       }).catch((err)=> console.log(err));
     });
@@ -159,6 +163,10 @@ app.whenReady().then(() => {
           document.getElementById('movie_player').seekTo(${time}, true) : false;
       `, false).then(()=>{
         console.log("set video time");  
+        getBrowserViewContents(event).executeJavaScript(`
+          document.getElementById('movie_player') ? 
+          document.getElementById('movie_player').playVideo() : 0;
+        `);
       }).catch((err)=> console.log(err));
     });
     ipcMain.on('setVideoTime', (event, time)=>{

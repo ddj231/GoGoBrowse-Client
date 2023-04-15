@@ -2,7 +2,7 @@ const log = window.webView.log;
 let follow = false;
 let isInRoom = false;
 
-const socket = io("https://gogobrowse-server.onrender.com", {secure: true});
+const socket = io("http://localhost:3000");
 
 let peerUrl = "";
 let current_url = "https://www.google.com";
@@ -258,6 +258,7 @@ socket.on('join', (data)=>{
         roomSyncedStatus.innerText = "Could not join";
         return;
     }
+    roomSyncedStatus.innerText = "Joined Room";
     leaveBtn.style.display = "block";
     isInRoom = true;
     if(pc){
