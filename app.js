@@ -10,7 +10,7 @@ window.webView
       .changeUrl('https://www.google.com');
 
 const inputBar = document.querySelector("#urlInput");
-inputBar.value =  'https://www.electronjs.org/docs/latest/tutorial/ipc'
+inputBar.value =  'https://www.google.com'
 inputBar.addEventListener('focus', () => {
     inputBar.addEventListener('mouseup', () =>{
         inputBar.setSelectionRange(0, inputBar.value.length);
@@ -93,6 +93,23 @@ class RoomState {
     AddGuest(guest){
         this.guests.push(guest);
     }
+
+    RemoveMember(socketID){
+        if(socketID in this.peerConnections){
+            delete this.peerConnections[socketID];
+        }
+        if(socketID in this.dataChannels){
+            delete this.dataChannels[socketID];
+        }
+        if(socketID in this.timestampChannels){
+            delete this.timestampChannels[socketID];
+        }
+        const index = this.guests.indexOf(socketID);
+        log("index is", index);
+        if(index > -1){
+            this.guests.splice(index);
+        }
+    }
     DataChannelSendAll(url){
         for(const key in currentRoomManager.dataChannels){
             let dataChannel = currentRoomManager.dataChannels[key];
@@ -130,6 +147,9 @@ class RoomState {
             else {
                 output += "(" + socketID.substring(0, 7) + ")";
             }
+        }
+        if(this.guests.length == 0){
+            output += "none";
         }
         return output;
     }
@@ -664,33 +684,19 @@ socket.on('leaveCurrentRoom', () => {
 });
 
 socket.on('peerLeft', (socketID) => {
-    LeaveRoom();
+    log("peer left", socketID);
+        LeaveRoom();
+        /*
+    currentRoomManager.RemoveMember(socketID);
+    joinedStatus.innerText = currentRoomManager.GenerateGuestText();
+    if(socketID == currentRoomManager.leader){
+        LeaveRoom();
+    }
+    */
 });
 
 socket.on('peerJoined', (data) => {  
     log("peer joined");
-    /*
-    if(dataChannel) {
-        dataChannel.onopen = ()=>{
-            refreshBtn.click();
-        }
-        dataChannel.onmessage = (event)=>{
-            log("follower sent url", event.url);
-            peerUrl = event.data;
-            if(peerUrl == current_url){
-                roomSyncedStatus.innerText = "Room is synced";
-            }
-            else {
-                roomSyncedStatus.innerText = "Room is not synced";
-            }
-        }
-    }
-    if(timestampChannel){
-        timestampChannel.onopen = ()=>{
-            log("timestamp channel open");
-        }
-    }
-    */
     log("joiner id is: ", data.peer);
     ConnectWithJoiner(data.peer, data.roomID);
     joinedStatus.innerText = currentRoomManager.GenerateGuestText();
